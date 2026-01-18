@@ -4,40 +4,151 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Editor compartido</title>
+
 <style>
-  body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:0;background:#0b1220;color:#e8eefc}
-  .wrap{max-width:980px;margin:0 auto;padding:16px}
-  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
-  button{padding:10px 12px;border:1px solid rgba(255,255,255,.14);background:#111a2e;color:#e8eefc;border-radius:10px;cursor:pointer}
-  button:disabled{opacity:.5;cursor:not-allowed}
-  input{padding:10px 12px;border:1px solid rgba(255,255,255,.14);background:#0f1730;color:#e8eefc;border-radius:10px;outline:none}
-  .pill{padding:6px 10px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:rgba(255,255,255,.06)}
-  textarea{width:100%;min-height:62vh;padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:#0f1730;color:#e8eefc;resize:vertical}
-  .muted{opacity:.75}
+:root{
+  --bg:#f4f6f9;
+  --card:#ffffff;
+  --border:#dcdfe6;
+  --text:#1f2937;
+  --muted:#6b7280;
+  --accent:#2563eb;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  background:linear-gradient(180deg,#eef2f7,#f9fafb);
+  color:var(--text);
+}
+
+.wrap{
+  max-width:1100px;
+  margin:0 auto;
+  padding:24px;
+}
+
+.topbar{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:14px 18px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:14px;
+  margin-bottom:18px;
+}
+
+.auth{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+input{
+  padding:9px 12px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  font-size:14px;
+}
+
+button{
+  padding:9px 14px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:#fff;
+  cursor:pointer;
+  font-size:14px;
+}
+
+button.primary{
+  background-color:var(--accent);
+  color:#fff;
+  border-color:var(--accent);
+  transition: background-color 1s ease;
+}
+
+button.primary:hover{
+  background-color:#1d4ed8;
+}
+
+button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+.status{
+  margin-top:6px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.editor-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+}
+
+textarea{
+  width:100%;
+  min-height:65vh;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px;
+  font-family:ui-monospace,Consolas,monospace;
+  font-size:14px;
+  line-height:1.5;
+  resize:vertical;
+}
+button.primary{
+  transition: background-color 1s ease;
+}
+
+#btnShare.flash,
+#btnShare.flash:hover{
+  background-color:#1d4ed8 !important;
+}
 </style>
 </head>
+
 <body>
 <div class="wrap">
-  <div class="bar">
-    <input id="email" placeholder="email" autocomplete="email" inputmode="email">
-    <input id="pass" placeholder="contraseña" type="password" autocomplete="current-password">
-    <button id="btnLogin">Entrar</button>
-    <button id="btnLogout" disabled>Salir</button>
-    <span class="pill" id="who">No autenticado</span>
-    <span class="pill muted" id="status">Listo</span>
+
+  <div class="topbar">
+    <div class="auth">
+      <input id="email" placeholder="email">
+      <input id="pass" type="password" placeholder="contraseña">
+      <button id="btnLogin" class="primary">Entrar</button>
+      <button id="btnLogout" disabled>Salir</button>
+    </div>
+
+    <div class="actions">
+      <button id="btnPaste" disabled>Pegar</button>
+      <button id="btnOpenJson" disabled>Abrir JSON</button>
+      <button id="btnSaveJson" disabled>Guardar JSON</button>
+      <button id="btnShare" disabled class="primary">Compartir</button>
+      <input id="fileJson" type="file" accept=".json,application/json" hidden>
+    </div>
   </div>
 
-  <div class="bar">
-    <button id="btnPaste" disabled>Pegar</button>
-    <button id="btnOpenJson" disabled>Abrir JSON</button>
-    <input id="fileJson" type="file" accept=".json,application/json" hidden />
-    <button id="btnShare" disabled>Compartir/Guardar</button>
+  <div class="status">
+    <span id="who">No autenticado</span> ·
+    <span id="status">Listo</span>
   </div>
 
-  <textarea id="editor" placeholder="Pega o escribe aquí..."></textarea>
-  <div class="muted" style="margin-top:10px">
-    Nota: este ejemplo guarda en <code>notes/{uid}</code> (privado por usuario).
+  <div class="editor-card">
+    <textarea id="editor" placeholder="Texto compartido entre dispositivos…"></textarea>
   </div>
+
 </div>
 
 <script type="module">
@@ -49,120 +160,143 @@ import {
 import {
   getFirestore, doc, setDoc, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-  const firebaseConfig = {
-    apiKey: "AIzaSyA5Bq3HOVvXBkYJBHk18mcdzgqWv-FXidU",
-    authDomain: "transpol-ead50.firebaseapp.com",
-    projectId: "transpol-ead50",
-    storageBucket: "transpol-ead50.firebasestorage.app",
-    messagingSenderId: "76597755309",
-    appId: "1:76597755309:web:62815e1b8fd3766a81f524"
-  };
 
-  const $ = (s)=>document.querySelector(s);
-  const email = $("#email"), pass = $("#pass");
-  const btnLogin = $("#btnLogin"), btnLogout=$("#btnLogout");
-  const btnPaste = $("#btnPaste"), btnOpenJson=$("#btnOpenJson"), btnShare=$("#btnShare");
-  const fileJson = $("#fileJson");
-  const editor = $("#editor");
-  const who = $("#who"), status = $("#status");
+const firebaseConfig = {
+  apiKey: "AIzaSyA5Bq3HOVvXBkYJBHk18mcdzgqWv-FXidU",
+  authDomain: "transpol-ead50.firebaseapp.com",
+  projectId: "transpol-ead50",
+  appId: "1:76597755309:web:62815e1b8fd3766a81f524"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+const $ = s=>document.querySelector(s);
 
-  let unsub = null;
-  let currentUid = null;
+const email=$("#email"), pass=$("#pass");
+const btnLogin=$("#btnLogin"), btnLogout=$("#btnLogout");
+const btnPaste=$("#btnPaste"), btnOpenJson=$("#btnOpenJson");
+const btnSaveJson=$("#btnSaveJson"), btnShare=$("#btnShare");
+const fileJson=$("#fileJson");
+const editor=$("#editor");
+const who=$("#who"), status=$("#status");
 
-  const setStatus = (t)=> status.textContent = t;
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
 
-  function setAuthedUI(isAuthed){
-    btnLogout.disabled = !isAuthed;
-    btnPaste.disabled = !isAuthed;
-    btnOpenJson.disabled = !isAuthed;
-    btnShare.disabled = !isAuthed;
-    btnLogin.disabled = isAuthed;
-    email.disabled = isAuthed;
-    pass.disabled = isAuthed;
+let currentUid=null, unsub=null;
+
+function setStatus(t){ status.textContent=t; }
+
+function setUI(authd){
+  btnLogout.disabled=!authd;
+  btnPaste.disabled=!authd;
+  btnOpenJson.disabled=!authd;
+  btnShare.disabled=!authd;
+  btnLogin.disabled=authd;
+  email.disabled=authd;
+  pass.disabled=authd;
+  updateJsonBtn();
+}
+
+btnLogin.onclick=async()=>{
+  await setPersistence(auth,browserLocalPersistence);
+  await signInWithEmailAndPassword(auth,email.value.trim(),pass.value);
+};
+
+btnLogout.onclick=()=>signOut(auth);
+
+btnPaste.onclick=async()=>{
+  editor.value=await navigator.clipboard.readText();
+  updateJsonBtn();
+};
+
+btnOpenJson.onclick=()=>fileJson.click();
+fileJson.onchange=async()=>{
+  const f=fileJson.files[0];
+  if(!f)return;
+  const t=await f.text();
+  try{ editor.value=JSON.stringify(JSON.parse(t),null,2); }
+  catch{ editor.value=t; }
+  updateJsonBtn();
+};
+
+btnShare.onclick = async () => {
+  btnShare.classList.remove("flash");
+  void btnShare.offsetWidth;                 // fuerza reflow (reinicia efecto)
+  btnShare.classList.add("flash");
+  setTimeout(() => btnShare.classList.remove("flash"), 1000);
+
+  await setDoc(doc(db,"notes",currentUid),{
+    text: editor.value,
+    updatedAt: serverTimestamp()
+  });
+
+  setStatus("Compartido");
+};
+
+function isValidJson(){
+  try{ JSON.parse(editor.value); return true; }catch{ return false; }
+}
+
+function updateJsonBtn(){
+  btnSaveJson.disabled=!(currentUid && isValidJson());
+}
+
+btnSaveJson.onclick = async () => {
+  const data = JSON.parse(editor.value);
+
+  const blob = new Blob(
+    [JSON.stringify(data, null, 2)],
+    { type: "application/json" }
+  );
+
+const suggested = `archivo-${Math.floor(1000 + Math.random() * 9000)}.json`;
+
+  if (window.showSaveFilePicker) {
+    const handle = await showSaveFilePicker({
+      suggestedName: suggested,
+      types: [{
+        description: "Archivo JSON",
+        accept: { "application/json": [".json"] }
+      }]
+    });
+
+    const writable = await handle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+
+  } else {
+    // fallback (Safari / Firefox)
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = suggested;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 500);
+  }
+};
+
+editor.addEventListener("input",updateJsonBtn);
+
+onAuthStateChanged(auth,(user)=>{
+  if(unsub){unsub();unsub=null;}
+  currentUid=user?.uid||null;
+
+  if(!user){
+    who.textContent="No autenticado";
+    editor.value="";
+    setUI(false);
+    return;
   }
 
-  btnLogin.addEventListener("click", async ()=>{
-    try{
-      await setPersistence(auth, browserLocalPersistence);
-      await signInWithEmailAndPassword(auth, email.value.trim(), pass.value);
-    }catch(e){
-      console.error(e);
-      alert("No se pudo iniciar sesión: " + (e?.message || e));
-    }
+  who.textContent=user.email;
+  setUI(true);
+
+  const ref=doc(db,"notes",user.uid);
+  unsub=onSnapshot(ref,s=>{
+    editor.value=s.data()?.text||"";
+    setStatus("Actualizado desde la nube");
+    updateJsonBtn();
   });
-
-  btnLogout.addEventListener("click", async ()=>{
-    try{ await signOut(auth); }catch(e){ console.error(e); }
-  });
-
-  btnPaste.addEventListener("click", async ()=>{
-    try{
-      const t = await navigator.clipboard.readText();
-      editor.value = t ?? "";
-      setStatus("Pegado desde portapapeles (sin guardar).");
-    }catch{
-      alert("El navegador no permitió leer el portapapeles. Prueba Ctrl+V en el editor.");
-    }
-  });
-
-  btnOpenJson.addEventListener("click", ()=> fileJson.click());
-  fileJson.addEventListener("change", async ()=>{
-    const f = fileJson.files?.[0];
-    fileJson.value = "";
-    if(!f) return;
-    const txt = await f.text();
-    try{
-      editor.value = JSON.stringify(JSON.parse(txt), null, 2);
-    }catch{
-      editor.value = txt;
-    }
-    setStatus("JSON cargado (sin guardar).");
-  });
-
-  btnShare.addEventListener("click", async ()=>{
-    if(!currentUid) return;
-    try{
-      const ref = doc(db, "notes", currentUid);
-      await setDoc(ref, {
-        text: editor.value,
-        updatedAt: serverTimestamp(),
-        updatedBy: currentUid
-      }, { merge: true });
-      setStatus("Guardado y compartido.");
-    }catch(e){
-      console.error(e);
-      alert("No se pudo guardar: " + (e?.message || e));
-    }
-  });
-
-  onAuthStateChanged(auth, (user)=>{
-    if(unsub){ unsub(); unsub=null; }
-    currentUid = user?.uid || null;
-
-    if(!user){
-      who.textContent = "No autenticado";
-      setAuthedUI(false);
-      editor.value = "";
-      setStatus("Listo");
-      return;
-    }
-
-    who.textContent = user.email || ("UID: " + user.uid);
-    setAuthedUI(true);
-
-    const ref = doc(db, "notes", user.uid);
-    unsub = onSnapshot(ref, (snap)=>{
-      editor.value = (snap.data()?.text ?? "");
-      setStatus("Actualizado desde la nube.");
-    }, (err)=>{
-      console.error(err);
-      setStatus("Error de escucha (mira consola).");
-    });
-  });
+});
 </script>
 </body>
 </html>
