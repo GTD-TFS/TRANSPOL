@@ -1,4 +1,4 @@
-const CACHE_NAME = "editor-compartido-v1";
+const CACHE_NAME = "editor-compartido-v2";
 
 const APP_ASSETS = [
   "./",
