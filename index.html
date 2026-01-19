@@ -1,8 +1,12 @@
 <!doctype html>
 <html lang="es">
 <head>
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="manifest" href="./manifest.webmanifest">
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#2563eb">
 <title>Editor compartido</title>
 
 <style>
@@ -102,10 +106,11 @@ button:disabled{
 }
 
 .editor-card{
-  background:var(--card);
-  border:1px solid var(--border);
+  background:var(--accent);
+  border:1px solid rgba(0,0,0,.06);
   border-radius:16px;
-  padding:18px;
+  padding:16px;
+  box-shadow:0 10px 28px rgba(0,0,0,.06);
 }
 
 .editor-actions{
@@ -122,6 +127,7 @@ button:disabled{
 
 textarea{
   width:100%;
+  background:var(--card);
   min-height:65vh;
   border:1px solid var(--border);
   border-radius:12px;
@@ -411,6 +417,11 @@ onAuthStateChanged(auth,(user)=>{
     updateJsonBtn();
   });
 });
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js");
+}
 </script>
 </body>
 </html>
