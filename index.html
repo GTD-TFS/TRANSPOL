@@ -246,6 +246,7 @@ button.primary{
 
     <div class="editor-actions">
       <button id="btnPaste" disabled>Pegar</button>
+      <button id="btnCopy" disabled>Copiar</button>
       <button id="btnShare" disabled class="primary">Compartir</button>
     </div>
   </div>
@@ -275,6 +276,7 @@ const email=$("#email"), pass=$("#pass");
 const btnLogin=$("#btnLogin"), btnLogout=$("#btnLogout");
 const btnPaste=$("#btnPaste"), btnOpenJson=$("#btnOpenJson");
 const btnSaveJson=$("#btnSaveJson"), btnShare=$("#btnShare");
+const btnCopy = $("#btnCopy");
 const fileJson=$("#fileJson");
 const editor=$("#editor");
 const who=$("#who"), status=$("#status");
@@ -309,6 +311,7 @@ function setUI(authd){
   btnPaste.disabled = !authd;
   btnOpenJson.disabled = !authd;
   btnShare.disabled = !authd;
+  btnCopy.disabled = !authd;
 
   btnLogin.disabled = authd;
   email.disabled = authd;
@@ -327,6 +330,11 @@ btnLogout.onclick=()=>signOut(auth);
 btnPaste.onclick=async()=>{
   editor.value=await navigator.clipboard.readText();
   updateJsonBtn();
+};
+
+btnCopy.onclick = async () => {
+  await navigator.clipboard.writeText(editor.value || "");
+  setStatus("Copiado al portapapeles");
 };
 
 btnOpenJson.onclick=()=>fileJson.click();
