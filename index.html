@@ -32,8 +32,8 @@ body{
 }
 
 .topbar{
-  background:var(--card);
-  border:1px solid var(--border);
+  background:var(--accent);
+  border:1px solid rgba(0,0,0,.06);
   border-radius:14px;
   padding:14px 18px;
   display:grid;
@@ -108,6 +108,18 @@ button:disabled{
   padding:18px;
 }
 
+.editor-actions{
+  margin-top:12px;
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+
+.editor-actions button{
+  min-width:160px;
+}
+
 textarea{
   width:100%;
   min-height:65vh;
@@ -178,6 +190,18 @@ button.primary{
   textarea{ min-height:58vh; }
 
   .editor-card{ padding:14px; }
+
+  .editor-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    justify-content:stretch;
+  }
+
+  .editor-actions button{
+    width:100%;
+    min-width:0;
+  }
 }
 </style>
 </head>
@@ -198,10 +222,8 @@ button.primary{
     </div>
 
     <div class="actions" id="actions" hidden>
-      <button id="btnPaste" disabled>Pegar</button>
       <button id="btnOpenJson" disabled>Abrir JSON</button>
       <button id="btnSaveJson" disabled>Guardar JSON</button>
-      <button id="btnShare" disabled class="primary">Compartir</button>
       <input id="fileJson" type="file" accept=".json,application/json" hidden>
     </div>
   </div>
@@ -214,6 +236,11 @@ button.primary{
 
     <div class="editor-card">
       <textarea id="editor" placeholder="Texto compartido entre dispositivos…"></textarea>
+    </div>
+
+    <div class="editor-actions">
+      <button id="btnPaste" disabled>Pegar</button>
+      <button id="btnShare" disabled class="primary">Compartir</button>
     </div>
   </div>
 
@@ -380,7 +407,7 @@ onAuthStateChanged(auth,(user)=>{
   const ref=doc(db,"notes",user.uid);
   unsub=onSnapshot(ref,s=>{
     editor.value=s.data()?.text||"";
-    setStatus("Actualizado desde la nube");
+    setStatus("");
     updateJsonBtn();
   });
 });
