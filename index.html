@@ -16,6 +16,7 @@
 }
 
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 
 body{
   margin:0;
@@ -39,6 +40,11 @@ body{
   grid-template-columns:1fr auto;
   gap:14px;
   margin-bottom:18px;
+
+  position:sticky;
+  top:12px;
+  z-index:10;
+  box-shadow:0 10px 28px rgba(0,0,0,.06);
 }
 
 .auth{
@@ -54,19 +60,23 @@ body{
 }
 
 input{
-  padding:9px 12px;
-  border-radius:8px;
+  padding:11px 12px;
+  border-radius:10px;
   border:1px solid var(--border);
-  font-size:14px;
+  font-size:15px;
+  min-width:220px;
 }
 
 button{
-  padding:9px 14px;
-  border-radius:8px;
+  padding:11px 14px;
+  border-radius:10px;
   border:1px solid var(--border);
   background:#fff;
   cursor:pointer;
-  font-size:14px;
+  font-size:15px;
+  line-height:1;
+  min-height:42px;
+  white-space:nowrap;
 }
 
 button.primary{
@@ -105,7 +115,7 @@ textarea{
   border-radius:12px;
   padding:16px;
   font-family:ui-monospace,Consolas,monospace;
-  font-size:14px;
+  font-size:15px;
   line-height:1.5;
   resize:vertical;
 }
@@ -117,6 +127,58 @@ button.primary{
 #btnShare.flash:hover{
   background-color:#1d4ed8 !important;
 }
+
+@media (max-width: 720px){
+  .wrap{ padding:14px; }
+
+  .topbar{
+    grid-template-columns:1fr;
+    gap:12px;
+    padding:12px;
+    top:8px;
+    border-radius:12px;
+  }
+
+  /* Stack auth/actions nicely */
+  .auth{ width:100%; }
+  .actions{ width:100%; }
+
+  /* Inputs full width */
+  #authOut input{
+    width:100%;
+    min-width:0;
+  }
+
+  /* Buttons: 2 columns grid for actions */
+  #actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+
+  /* Make auth buttons comfortable */
+  #authOut button,
+  #authIn button{
+    width:100%;
+  }
+
+  /* Ensure login inputs + button look clean */
+  #authOut{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    width:100%;
+  }
+
+  #authIn{
+    width:100%;
+  }
+
+  /* Editor takes space on mobile */
+  textarea{ min-height:58vh; }
+
+  .editor-card{ padding:14px; }
+}
 </style>
 </head>
 
@@ -125,13 +187,17 @@ button.primary{
 
   <div class="topbar">
     <div class="auth">
-      <input id="email" placeholder="email">
-      <input id="pass" type="password" placeholder="contraseña">
-      <button id="btnLogin" class="primary">Entrar</button>
-      <button id="btnLogout" disabled>Salir</button>
+      <div id="authOut" class="auth">
+        <input id="email" placeholder="email">
+        <input id="pass" type="password" placeholder="contraseña">
+        <button id="btnLogin" class="primary">Entrar</button>
+      </div>
+      <div id="authIn" class="auth" hidden>
+        <button id="btnLogout" disabled>Salir</button>
+      </div>
     </div>
 
-    <div class="actions">
+    <div class="actions" id="actions" hidden>
       <button id="btnPaste" disabled>Pegar</button>
       <button id="btnOpenJson" disabled>Abrir JSON</button>
       <button id="btnSaveJson" disabled>Guardar JSON</button>
@@ -140,13 +206,15 @@ button.primary{
     </div>
   </div>
 
-  <div class="status">
-    <span id="who">No autenticado</span> ·
-    <span id="status">Listo</span>
-  </div>
+  <div id="appUI" hidden>
+    <div class="status">
+      <span id="who">No autenticado</span> ·
+      <span id="status">Listo</span>
+    </div>
 
-  <div class="editor-card">
-    <textarea id="editor" placeholder="Texto compartido entre dispositivos…"></textarea>
+    <div class="editor-card">
+      <textarea id="editor" placeholder="Texto compartido entre dispositivos…"></textarea>
+    </div>
   </div>
 
 </div>
@@ -177,6 +245,10 @@ const btnSaveJson=$("#btnSaveJson"), btnShare=$("#btnShare");
 const fileJson=$("#fileJson");
 const editor=$("#editor");
 const who=$("#who"), status=$("#status");
+const authOut = $("#authOut");
+const authIn  = $("#authIn");
+const actions = $("#actions");
+const appUI   = $("#appUI");
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -187,13 +259,28 @@ let currentUid=null, unsub=null;
 function setStatus(t){ status.textContent=t; }
 
 function setUI(authd){
-  btnLogout.disabled=!authd;
-  btnPaste.disabled=!authd;
-  btnOpenJson.disabled=!authd;
-  btnShare.disabled=!authd;
-  btnLogin.disabled=authd;
-  email.disabled=authd;
-  pass.disabled=authd;
+  // Visibilidad
+  if (authOut){
+    authOut.hidden = !!authd;
+    authOut.style.display = authd ? "none" : "flex";
+  }
+  if (authIn){
+    authIn.hidden = !authd;
+    authIn.style.display = authd ? "flex" : "none";
+  }
+  if (actions) actions.hidden = !authd;
+  if (appUI)   appUI.hidden   = !authd;
+
+  // Estado de controles
+  btnLogout.disabled = !authd;
+  btnPaste.disabled = !authd;
+  btnOpenJson.disabled = !authd;
+  btnShare.disabled = !authd;
+
+  btnLogin.disabled = authd;
+  email.disabled = authd;
+  pass.disabled = authd;
+
   updateJsonBtn();
 }
 
@@ -281,8 +368,8 @@ onAuthStateChanged(auth,(user)=>{
   currentUid=user?.uid||null;
 
   if(!user){
-    who.textContent="No autenticado";
-    editor.value="";
+    if (who) who.textContent = "No autenticado";
+    if (editor) editor.value = "";
     setUI(false);
     return;
   }
