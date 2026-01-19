@@ -247,6 +247,7 @@ button.primary{
     <div class="editor-actions">
       <button id="btnPaste" disabled>Pegar</button>
       <button id="btnCopy" disabled>Copiar</button>
+      <button id="btnClear" disabled>Limpiar</button>
       <button id="btnShare" disabled class="primary">Compartir</button>
     </div>
   </div>
@@ -277,6 +278,7 @@ const btnLogin=$("#btnLogin"), btnLogout=$("#btnLogout");
 const btnPaste=$("#btnPaste"), btnOpenJson=$("#btnOpenJson");
 const btnSaveJson=$("#btnSaveJson"), btnShare=$("#btnShare");
 const btnCopy = $("#btnCopy");
+const btnClear = $("#btnClear");
 const fileJson=$("#fileJson");
 const editor=$("#editor");
 const who=$("#who"), status=$("#status");
@@ -312,6 +314,7 @@ function setUI(authd){
   btnOpenJson.disabled = !authd;
   btnShare.disabled = !authd;
   btnCopy.disabled = !authd;
+  btnClear.disabled = !authd;
 
   btnLogin.disabled = authd;
   email.disabled = authd;
@@ -335,6 +338,12 @@ btnPaste.onclick=async()=>{
 btnCopy.onclick = async () => {
   await navigator.clipboard.writeText(editor.value || "");
   setStatus("Copiado al portapapeles");
+};
+
+btnClear.onclick = () => {
+  editor.value = "";
+  updateJsonBtn();
+  setStatus("Texto limpiado");
 };
 
 btnOpenJson.onclick=()=>fileJson.click();
