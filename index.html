@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#2563eb">
+<title>Editor compartido</title>
+
+<style>
+:root{
+  --bg:#dfeaf8;
+  --card:rgba(255,255,255,.36);
+  --card-strong:rgba(255,255,255,.58);
+  --border:rgba(255,255,255,.38);
+  --text:#10203a;
+  --muted:#4a5a76;
+  --accent:#0b6bff;
+  --accent-2:#39a0ff;
+  --shadow:0 18px 44px rgba(10,28,60,.18);
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+
+body{
+  margin:0;
+  font-family:"Avenir Next",Avenir,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(900px 460px at 8% -10%, rgba(255,255,255,.8), transparent 70%),
+    radial-gradient(640px 340px at 100% 0%, rgba(95,182,255,.35), transparent 70%),
+    linear-gradient(160deg,#d9e8fb 0%,#c6dcf8 44%,#e7f2ff 100%);
+  color:var(--text);
+  min-height:100vh;
+}
+
+.wrap{
+  max-width:1100px;
+  margin:0 auto;
+  padding:24px;
+}
+
+.topbar{
+  background:linear-gradient(135deg, rgba(255,255,255,.36), rgba(255,255,255,.16));
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:14px 18px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:14px;
+  margin-bottom:18px;
+
+  position:sticky;
+  top:12px;
+  z-index:10;
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(14px) saturate(125%);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+}
+
+.auth{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+input{
+  padding:11px 12px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.5);
+  font-size:15px;
+  min-width:220px;
+  background:rgba(255,255,255,.66);
+  color:var(--text);
+}
+
+button{
+  padding:11px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.5);
+  background:rgba(255,255,255,.54);
+  cursor:pointer;
+  font-size:15px;
+  line-height:1;
+  min-height:42px;
+  white-space:nowrap;
+  color:var(--text);
+  transition:transform .14s ease, box-shadow .2s ease, background-color .2s ease;
+}
+
+button:hover{
+  transform:translateY(-1px);
+  box-shadow:0 10px 22px rgba(8,25,50,.14);
+}
+
+button.primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:#fff;
+  border-color:rgba(255,255,255,.34);
+}
+
+button.primary:hover{
+  background:linear-gradient(135deg,#0858d3,#2c8fff);
+}
+
+button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+.status{
+  margin-top:6px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.editor-card{
+  background:linear-gradient(160deg,rgba(255,255,255,.34),rgba(255,255,255,.18));
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px;
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+}
+
+.editor-actions{
+  margin-top:12px;
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+
+.editor-actions button{
+  min-width:160px;
+}
+
+textarea{
+  width:100%;
+  background:var(--card-strong);
+  min-height:65vh;
+  border:1px solid rgba(255,255,255,.45);
+  border-radius:14px;
+  padding:16px;
+  font-family:ui-monospace,Consolas,monospace;
+  font-size:15px;
+  line-height:1.5;
+  resize:vertical;
+}
+button.primary{
+  transition: background-color 1s ease;
+}
+
+#btnShare.flash,
+#btnShare.flash:hover{
+  background-color:#1d4ed8 !important;
+}
+
+.files-card{
+  margin-top:16px;
+  background:linear-gradient(160deg,rgba(255,255,255,.34),rgba(255,255,255,.18));
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:14px;
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+}
+
+.files-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.files-head h2{
+  margin:0;
+  font-size:17px;
+}
+
+.quota{
+  margin-top:4px;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.files-tools{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.dropzone{
+  margin-top:12px;
+  border:2px dashed rgba(43,130,255,.5);
+  border-radius:14px;
+  background:rgba(232,244,255,.6);
+  min-height:120px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:18px;
+  color:#1f4da1;
+  font-weight:600;
+  transition:border-color .15s ease, background-color .15s ease;
+}
+
+.dropzone.dragover{
+  border-color:#0b6bff;
+  background:rgba(210,232,255,.75);
+}
+
+.files-list{
+  margin-top:12px;
+  border:1px solid rgba(255,255,255,.46);
+  border-radius:14px;
+  overflow:hidden;
+}
+
+.files-table{
+  width:100%;
+  border-collapse:collapse;
+  background:rgba(255,255,255,.62);
+}
+
+.files-table th,
+.files-table td{
+  padding:10px;
+  border-bottom:1px solid var(--border);
+  font-size:14px;
+  text-align:left;
+}
+
+.files-table th{
+  background:rgba(229,241,255,.76);
+  color:#244273;
+}
+
+.files-table tr:last-child td{
+  border-bottom:none;
+}
+
+.file-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.empty{
+  padding:16px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.view-toggle{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.view-toggle button{
+  min-width:160px;
+}
+
+.view-toggle button.is-active{
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  border-color:rgba(255,255,255,.34);
+  color:#fff;
+}
+
+@media (max-width: 720px){
+  .wrap{ padding:14px; }
+
+  .topbar{
+    grid-template-columns:1fr;
+    gap:12px;
+    padding:12px;
+    top:8px;
+    border-radius:12px;
+  }
+
+  /* Stack auth/actions nicely */
+  .auth{ width:100%; }
+  .actions{ width:100%; }
+
+  /* Inputs full width */
+  #authOut input{
+    width:100%;
+    min-width:0;
+  }
+
+  /* Buttons: 2 columns grid for actions */
+  #actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+
+  /* Make auth buttons comfortable */
+  #authOut button,
+  #authIn button{
+    width:100%;
+  }
+
+  /* Ensure login inputs + button look clean */
+  #authOut{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    width:100%;
+  }
+
+  #authIn{
+    width:100%;
+  }
+
+  /* Editor takes space on mobile */
+  textarea{ min-height:58vh; }
+
+  .editor-card{ padding:14px; }
+
+  .editor-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    justify-content:stretch;
+  }
+
+  .editor-actions button{
+    width:100%;
+    min-width:0;
+  }
+
+  .files-head{
+    align-items:stretch;
+  }
+
+  .files-head h2{
+    width:100%;
+  }
+
+  .files-tools{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .files-tools button{
+    width:100%;
+  }
+
+  .view-toggle{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .view-toggle button{
+    width:100%;
+    min-width:0;
+  }
+
+  .files-table th:nth-child(2),
+  .files-table td:nth-child(2),
+  .files-table th:nth-child(3),
+  .files-table td:nth-child(3){
+    display:none;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="auth">
+      <div id="authOut" class="auth">
+        <input id="email" placeholder="email">
+        <input id="pass" type="password" placeholder="contraseña">
+        <button id="btnLogin" class="primary">Entrar</button>
+      </div>
+      <div id="authIn" class="auth" hidden>
+        <button id="btnLogout" disabled>Salir</button>
+      </div>
+    </div>
+
+    <div class="actions" id="actions" hidden>
+      <button id="btnOpenJson" disabled>Abrir JSON</button>
+      <button id="btnSaveJson" disabled>Guardar JSON</button>
+      <input id="fileJson" type="file" accept=".json,application/json" hidden>
+      <input id="fileAny" type="file" multiple hidden>
+    </div>
+  </div>
+
+  <div id="appUI" hidden>
+    <div class="view-toggle">
+      <button id="btnScreenFiles" class="is-active" disabled>Archivos</button>
+      <button id="btnScreenText" disabled>Texto y JSON</button>
+    </div>
+
+    <div class="status">
+      <span id="who">No autenticado</span> ·
+      <span id="status">Listo</span>
+    </div>
+
+    <div id="textScreen">
+      <div class="editor-card">
+        <textarea id="editor" placeholder="Texto compartido entre dispositivos…"></textarea>
+      </div>
+
+      <div class="editor-actions">
+        <button id="btnPaste" disabled>Pegar</button>
+        <button id="btnCopy" disabled>Copiar</button>
+        <button id="btnClear" disabled>Limpiar</button>
+        <button id="btnShare" disabled class="primary">Compartir</button>
+      </div>
+    </div>
+
+    <div id="filesSection" class="files-card" hidden>
+      <div class="files-head">
+        <div>
+          <h2>Almacenamiento de archivos</h2>
+          <div id="quotaInfo" class="quota">Uso: -</div>
+        </div>
+        <div class="files-tools">
+          <button id="btnRefreshFiles" disabled>Actualizar</button>
+          <button id="btnImportFiles2" class="primary" disabled>Subir archivos</button>
+        </div>
+      </div>
+
+      <div id="dropzone" class="dropzone">
+        Arrastra y suelta archivos aqui o pulsa "Subir archivos"
+      </div>
+
+      <div class="files-list">
+        <table class="files-table" id="filesTable" hidden>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Tamano</th>
+              <th>Modificado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="filesBody"></tbody>
+        </table>
+        <div id="filesEmpty" class="empty">No hay archivos todavia.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Cambia esta URL por la de tu Worker (Cloudflare)
+window.TRANS_POL_FILES_API_BASE = "https://transpol-files.adeje-gtd.workers.dev";
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged,
+  setPersistence, browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, onSnapshot, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA5Bq3HOVvXBkYJBHk18mcdzgqWv-FXidU",
+  authDomain: "transpol-ead50.firebaseapp.com",
+  projectId: "transpol-ead50",
+  appId: "1:76597755309:web:62815e1b8fd3766a81f524"
+};
+
+const $ = s=>document.querySelector(s);
+
+const email=$("#email"), pass=$("#pass");
+const btnLogin=$("#btnLogin"), btnLogout=$("#btnLogout");
+const btnPaste=$("#btnPaste"), btnOpenJson=$("#btnOpenJson");
+const btnSaveJson=$("#btnSaveJson"), btnShare=$("#btnShare");
+const btnImportFiles2=$("#btnImportFiles2");
+const btnRefreshFiles=$("#btnRefreshFiles");
+const btnScreenFiles=$("#btnScreenFiles"), btnScreenText=$("#btnScreenText");
+const btnCopy = $("#btnCopy");
+const btnClear = $("#btnClear");
+const fileJson=$("#fileJson");
+const fileAny=$("#fileAny");
+const editor=$("#editor");
+const who=$("#who"), status=$("#status");
+const authOut = $("#authOut");
+const authIn  = $("#authIn");
+const actions = $("#actions");
+const appUI   = $("#appUI");
+const textScreen = $("#textScreen");
+const filesSection = $("#filesSection");
+const dropzone = $("#dropzone");
+const filesTable = $("#filesTable");
+const filesBody = $("#filesBody");
+const filesEmpty = $("#filesEmpty");
+const quotaInfo = $("#quotaInfo");
+
+const FILES_API_BASE = (window.TRANS_POL_FILES_API_BASE || "").replace(/\/+$/,"");
+const MAX_STORAGE_BYTES = 10 * 1024 * 1024 * 1024;
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+
+let currentUid=null, unsub=null;
+let filesBusy=false;
+let currentScreen="files";
+let filesUsedBytes=0;
+let filesMaxBytes=MAX_STORAGE_BYTES;
+
+function setStatus(t){ status.textContent=t; }
+
+function setUI(authd){
+  // Visibilidad
+  if (authOut){
+    authOut.hidden = !!authd;
+    authOut.style.display = authd ? "none" : "flex";
+  }
+  if (authIn){
+    authIn.hidden = !authd;
+    authIn.style.display = authd ? "flex" : "none";
+  }
+  if (actions) actions.hidden = !authd;
+  if (appUI)   appUI.hidden   = !authd;
+
+  // Estado de controles
+  btnLogout.disabled = !authd;
+  btnPaste.disabled = !authd;
+  btnOpenJson.disabled = !authd;
+  btnShare.disabled = !authd;
+  btnCopy.disabled = !authd;
+  btnClear.disabled = !authd;
+  btnImportFiles2.disabled = !authd || !FILES_API_BASE;
+  btnRefreshFiles.disabled = !authd || !FILES_API_BASE;
+  btnScreenFiles.disabled = !authd;
+  btnScreenText.disabled = !authd;
+
+  btnLogin.disabled = authd;
+  email.disabled = authd;
+  pass.disabled = authd;
+
+  if (dropzone){
+    dropzone.setAttribute("aria-disabled",(!authd || !FILES_API_BASE) ? "true":"false");
+  }
+
+  updateScreen();
+  updateJsonBtn();
+}
+
+function updateScreen(){
+  const isFiles = currentScreen === "files";
+  if (filesSection) filesSection.hidden = !currentUid || !isFiles;
+  if (textScreen) textScreen.hidden = !currentUid || isFiles;
+
+  if (btnScreenFiles) btnScreenFiles.classList.toggle("is-active", isFiles);
+  if (btnScreenText) btnScreenText.classList.toggle("is-active", !isFiles);
+
+  if (btnOpenJson) btnOpenJson.hidden = isFiles;
+  if (btnSaveJson) btnSaveJson.hidden = isFiles;
+  if (actions) actions.hidden = !currentUid || isFiles;
+}
+
+function setScreen(next){
+  currentScreen = next === "text" ? "text" : "files";
+  updateScreen();
+}
+
+btnLogin.onclick=async()=>{
+  await setPersistence(auth,browserLocalPersistence);
+  await signInWithEmailAndPassword(auth,email.value.trim(),pass.value);
+};
+
+btnLogout.onclick=()=>signOut(auth);
+
+btnPaste.onclick=async()=>{
+  editor.value=await navigator.clipboard.readText();
+  updateJsonBtn();
+};
+
+btnCopy.onclick = async () => {
+  await navigator.clipboard.writeText(editor.value || "");
+  setStatus("Copiado al portapapeles");
+};
+
+btnClear.onclick = () => {
+  editor.value = "";
+  updateJsonBtn();
+  setStatus("Texto limpiado");
+};
+
+btnOpenJson.onclick=()=>fileJson.click();
+btnImportFiles2.onclick=()=>fileAny.click();
+btnScreenFiles.onclick=()=>setScreen("files");
+btnScreenText.onclick=()=>setScreen("text");
+
+fileJson.onchange=async()=>{
+  const f=fileJson.files[0];
+  if(!f)return;
+  const t=await f.text();
+  try{ editor.value=JSON.stringify(JSON.parse(t),null,2); }
+  catch{ editor.value=t; }
+  updateJsonBtn();
+};
+
+fileAny.onchange=async()=>{
+  const list = Array.from(fileAny.files || []);
+  await uploadFiles(list);
+  fileAny.value = "";
+};
+
+btnShare.onclick = async () => {
+  btnShare.classList.remove("flash");
+  void btnShare.offsetWidth;                 // fuerza reflow (reinicia efecto)
+  btnShare.classList.add("flash");
+  setTimeout(() => btnShare.classList.remove("flash"), 1000);
+
+  await setDoc(doc(db,"notes",currentUid),{
+    text: editor.value,
+    updatedAt: serverTimestamp()
+  });
+
+  setStatus("Compartido");
+};
+
+function isValidJson(){
+  try{ JSON.parse(editor.value); return true; }catch{ return false; }
+}
+
+function formatBytes(bytes){
+  if(!Number.isFinite(bytes) || bytes < 0) return "-";
+  const units = ["B","KB","MB","GB","TB"];
+  let n = bytes;
+  let idx = 0;
+  while(n >= 1024 && idx < units.length - 1){
+    n /= 1024;
+    idx++;
+  }
+  return `${n.toFixed(idx === 0 ? 0 : 1)} ${units[idx]}`;
+}
+
+function formatDate(value){
+  if(!value) return "-";
+  const d = new Date(value);
+  if(Number.isNaN(d.getTime())) return "-";
+  return d.toLocaleString("es-ES");
+}
+
+function updateQuotaInfo(){
+  if(!quotaInfo) return;
+  const remaining = Math.max(0, filesMaxBytes - filesUsedBytes);
+  quotaInfo.textContent = `Uso: ${formatBytes(filesUsedBytes)} / ${formatBytes(filesMaxBytes)} (Disponible: ${formatBytes(remaining)})`;
+}
+
+async function authHeaders(){
+  const token = auth.currentUser ? await auth.currentUser.getIdToken() : "";
+  return {
+    Authorization: token ? `Bearer ${token}` : "",
+    "X-Transpol-Uid": currentUid || ""
+  };
+}
+
+async function filesFetch(path, options={}){
+  if(!FILES_API_BASE){
+    throw new Error("Configura window.TRANS_POL_FILES_API_BASE con tu endpoint de archivos.");
+  }
+  const headers = await authHeaders();
+  const mergedHeaders = { ...(options.headers || {}), ...headers };
+  const res = await fetch(`${FILES_API_BASE}${path}`, { ...options, headers: mergedHeaders });
+  if(!res.ok){
+    const text = await res.text().catch(()=>"");
+    throw new Error(text || `Error ${res.status}`);
+  }
+  return res;
+}
+
+function normalizeFiles(payload){
+  const source = Array.isArray(payload) ? payload : (payload?.files || []);
+  return source.map(f=>({
+    key: f.key || f.name || "",
+    name: f.name || f.key || "",
+    size: Number(f.size || 0),
+    updatedAt: f.updatedAt || f.lastModified || f.uploadedAt || null
+  })).filter(f=>f.key && f.name);
+}
+
+function renderFiles(list){
+  filesBody.innerHTML = "";
+  if(!list.length){
+    filesTable.hidden = true;
+    filesEmpty.hidden = false;
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  for(const file of list){
+    const tr = document.createElement("tr");
+
+    const tdName = document.createElement("td");
+    tdName.textContent = file.name;
+
+    const tdSize = document.createElement("td");
+    tdSize.textContent = formatBytes(file.size);
+
+    const tdDate = document.createElement("td");
+    tdDate.textContent = formatDate(file.updatedAt);
+
+    const tdActions = document.createElement("td");
+    const actionsWrap = document.createElement("div");
+    actionsWrap.className = "file-actions";
+
+    const btnDl = document.createElement("button");
+    btnDl.textContent = "Descargar";
+    btnDl.disabled = false;
+    btnDl.onclick = () => {
+      if(filesBusy) return;
+      downloadFile(file.key, file.name);
+    };
+
+    const btnDel = document.createElement("button");
+    btnDel.textContent = "Eliminar";
+    btnDel.disabled = false;
+    btnDel.onclick = async () => {
+      if(filesBusy) return;
+      if(!confirm(`Eliminar "${file.name}"?`)) return;
+      await deleteFile(file.key);
+    };
+
+    actionsWrap.append(btnDl,btnDel);
+    tdActions.append(actionsWrap);
+
+    tr.append(tdName,tdSize,tdDate,tdActions);
+    frag.append(tr);
+  }
+
+  filesBody.append(frag);
+  filesTable.hidden = false;
+  filesEmpty.hidden = true;
+}
+
+async function refreshFiles(){
+  if(!currentUid || !FILES_API_BASE) return;
+  try{
+    setStatus("Cargando archivos...");
+    const res = await filesFetch("/files");
+    const payload = await res.json();
+    filesUsedBytes = Number(payload?.usedBytes || 0);
+    filesMaxBytes = Number(payload?.maxBytes || MAX_STORAGE_BYTES);
+    updateQuotaInfo();
+    renderFiles(normalizeFiles(payload));
+    setStatus("Archivos actualizados");
+  }catch(err){
+    setStatus(`Error al listar archivos: ${err.message}`);
+  }
+}
+
+function setFilesBusy(next){
+  filesBusy = next;
+  if(btnImportFiles2) btnImportFiles2.disabled = next || !currentUid || !FILES_API_BASE;
+  if(btnRefreshFiles) btnRefreshFiles.disabled = next || !currentUid || !FILES_API_BASE;
+  document.querySelectorAll(".file-actions button").forEach((btn)=>{
+    btn.disabled = next;
+  });
+}
+
+async function uploadFiles(files){
+  if(!files?.length || !currentUid || !FILES_API_BASE) return;
+  const incomingTotal = files.reduce((acc, file)=>acc + (Number(file.size) || 0),0);
+  const remaining = Math.max(0, filesMaxBytes - filesUsedBytes);
+  if (incomingTotal > remaining){
+    setStatus(`Subida cancelada: supera limite de 10 GB. Disponible: ${formatBytes(remaining)}.`);
+    return;
+  }
+  setFilesBusy(true);
+  try{
+    for(const file of files){
+      const remainingNow = Math.max(0, filesMaxBytes - filesUsedBytes);
+      if ((Number(file.size) || 0) > remainingNow){
+        throw new Error(`No hay espacio suficiente para "${file.name}". Disponible: ${formatBytes(remainingNow)}.`);
+      }
+      setStatus(`Subiendo: ${file.name}`);
+      await filesFetch(`/files?name=${encodeURIComponent(file.name)}`,{
+        method:"POST",
+        headers:{
+          "Content-Type": file.type || "application/octet-stream"
+        },
+        body:file
+      });
+      filesUsedBytes += Number(file.size) || 0;
+      updateQuotaInfo();
+    }
+    setStatus("Subida completada");
+    await refreshFiles();
+  }catch(err){
+    setStatus(`Error al subir archivos: ${err.message}`);
+  }finally{
+    setFilesBusy(false);
+  }
+}
+
+async function downloadFile(key, fallbackName){
+  if(!currentUid || !FILES_API_BASE) return;
+  try{
+    setStatus(`Descargando: ${fallbackName}`);
+    const res = await filesFetch(`/files/${encodeURIComponent(key)}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fallbackName || key;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1200);
+    setStatus("Descarga iniciada");
+  }catch(err){
+    setStatus(`Error al descargar: ${err.message}`);
+  }
+}
+
+async function deleteFile(key){
+  if(!currentUid || !FILES_API_BASE) return;
+  setFilesBusy(true);
+  try{
+    await filesFetch(`/files/${encodeURIComponent(key)}`,{ method:"DELETE" });
+    setStatus("Archivo eliminado");
+    await refreshFiles();
+  }catch(err){
+    setStatus(`Error al eliminar: ${err.message}`);
+  }finally{
+    setFilesBusy(false);
+  }
+}
+
+btnRefreshFiles.onclick = refreshFiles;
+
+for(const eventName of ["dragenter","dragover"]){
+  dropzone.addEventListener(eventName,(e)=>{
+    e.preventDefault();
+    if(!currentUid || !FILES_API_BASE || filesBusy) return;
+    dropzone.classList.add("dragover");
+  });
+}
+
+for(const eventName of ["dragleave","drop"]){
+  dropzone.addEventListener(eventName,(e)=>{
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+  });
+}
+
+dropzone.addEventListener("drop",async(e)=>{
+  if(!currentUid || !FILES_API_BASE || filesBusy) return;
+  const dropped = Array.from(e.dataTransfer?.files || []);
+  await uploadFiles(dropped);
+});
+
+function updateJsonBtn(){
+  btnSaveJson.disabled=!(currentUid && isValidJson());
+}
+
+btnSaveJson.onclick = async () => {
+  const data = JSON.parse(editor.value);
+
+  const blob = new Blob(
+    [JSON.stringify(data, null, 2)],
+    { type: "application/json" }
+  );
+
+const suggested = `archivo-${Math.floor(1000 + Math.random() * 9000)}.json`;
+
+  if (window.showSaveFilePicker) {
+    const handle = await showSaveFilePicker({
+      suggestedName: suggested,
+      types: [{
+        description: "Archivo JSON",
+        accept: { "application/json": [".json"] }
+      }]
+    });
+
+    const writable = await handle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+
+  } else {
+    // fallback (Safari / Firefox)
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = suggested;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 500);
+  }
+};
+
+editor.addEventListener("input",updateJsonBtn);
+
+onAuthStateChanged(auth,(user)=>{
+  if(unsub){unsub();unsub=null;}
+  currentUid=user?.uid||null;
+
+  if(!user){
+    if (who) who.textContent = "No autenticado";
+    if (editor) editor.value = "";
+    renderFiles([]);
+    filesUsedBytes = 0;
+    filesMaxBytes = MAX_STORAGE_BYTES;
+    updateQuotaInfo();
+    currentScreen = "files";
+    setUI(false);
+    return;
+  }
+
+  who.textContent=user.email;
+  setUI(true);
+  setScreen("files");
+  if (!FILES_API_BASE){
+    setStatus("Configura window.TRANS_POL_FILES_API_BASE para activar archivos.");
+  } else {
+    refreshFiles();
+  }
+
+  const ref=doc(db,"notes",user.uid);
+  unsub=onSnapshot(ref,s=>{
+    editor.value=s.data()?.text||"";
+    setStatus("");
+    updateJsonBtn();
+  });
+});
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./service-worker.js");
+}
+</script>
+</body>
+</html>

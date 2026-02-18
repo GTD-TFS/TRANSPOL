@@ -1,0 +1,12 @@
+name = "transpol-files"
+main = "src/index.js"
+compatibility_date = "2026-02-17"
+
+[vars]
+FIREBASE_PROJECT_ID = "transpol-ead50"
+ALLOWED_ORIGIN = "*"
+MAX_TOTAL_BYTES = "10737418240"
+
+[[r2_buckets]]
+binding = "MY_BUCKET"
+bucket_name = "transpol-files"
