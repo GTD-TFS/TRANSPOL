@@ -11,6 +11,7 @@
 
 <style>
 :root{
+<<<<<<< HEAD
   --bg:#dfeaf8;
   --card:rgba(255,255,255,.36);
   --card-strong:rgba(255,255,255,.58);
@@ -20,6 +21,14 @@
   --accent:#0b6bff;
   --accent-2:#39a0ff;
   --shadow:0 18px 44px rgba(10,28,60,.18);
+=======
+  --bg:#f4f6f9;
+  --card:#ffffff;
+  --border:#dcdfe6;
+  --text:#1f2937;
+  --muted:#6b7280;
+  --accent:#2563eb;
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 }
 
 *{box-sizing:border-box}
@@ -27,6 +36,7 @@
 
 body{
   margin:0;
+<<<<<<< HEAD
   font-family:"Avenir Next",Avenir,"Segoe UI",sans-serif;
   background:
     radial-gradient(900px 460px at 8% -10%, rgba(255,255,255,.8), transparent 70%),
@@ -34,6 +44,11 @@ body{
     linear-gradient(160deg,#d9e8fb 0%,#c6dcf8 44%,#e7f2ff 100%);
   color:var(--text);
   min-height:100vh;
+=======
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  background:linear-gradient(180deg,#eef2f7,#f9fafb);
+  color:var(--text);
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 }
 
 .wrap{
@@ -43,9 +58,15 @@ body{
 }
 
 .topbar{
+<<<<<<< HEAD
   background:linear-gradient(135deg, rgba(255,255,255,.36), rgba(255,255,255,.16));
   border:1px solid var(--border);
   border-radius:18px;
+=======
+  background:var(--accent);
+  border:1px solid rgba(0,0,0,.06);
+  border-radius:14px;
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
   padding:14px 18px;
   display:grid;
   grid-template-columns:1fr auto;
@@ -55,9 +76,13 @@ body{
   position:sticky;
   top:12px;
   z-index:10;
+<<<<<<< HEAD
   box-shadow:var(--shadow);
   backdrop-filter: blur(14px) saturate(125%);
   -webkit-backdrop-filter: blur(14px) saturate(125%);
+=======
+  box-shadow:0 10px 28px rgba(0,0,0,.06);
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 }
 
 .auth{
@@ -75,23 +100,36 @@ body{
 input{
   padding:11px 12px;
   border-radius:10px;
+<<<<<<< HEAD
   border:1px solid rgba(255,255,255,.5);
   font-size:15px;
   min-width:220px;
   background:rgba(255,255,255,.66);
   color:var(--text);
+=======
+  border:1px solid var(--border);
+  font-size:15px;
+  min-width:220px;
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 }
 
 button{
   padding:11px 14px;
+<<<<<<< HEAD
   border-radius:12px;
   border:1px solid rgba(255,255,255,.5);
   background:rgba(255,255,255,.54);
+=======
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:#fff;
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
   cursor:pointer;
   font-size:15px;
   line-height:1;
   min-height:42px;
   white-space:nowrap;
+<<<<<<< HEAD
   color:var(--text);
   transition:transform .14s ease, box-shadow .2s ease, background-color .2s ease;
 }
@@ -109,6 +147,19 @@ button.primary{
 
 button.primary:hover{
   background:linear-gradient(135deg,#0858d3,#2c8fff);
+=======
+}
+
+button.primary{
+  background-color:var(--accent);
+  color:#fff;
+  border-color:var(--accent);
+  transition: background-color 1s ease;
+}
+
+button.primary:hover{
+  background-color:#1d4ed8;
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 }
 
 button:disabled{
@@ -123,6 +174,7 @@ button:disabled{
 }
 
 .editor-card{
+<<<<<<< HEAD
   background:linear-gradient(160deg,rgba(255,255,255,.34),rgba(255,255,255,.18));
   border:1px solid var(--border);
   border-radius:18px;
@@ -130,6 +182,13 @@ button:disabled{
   box-shadow:var(--shadow);
   backdrop-filter: blur(14px) saturate(120%);
   -webkit-backdrop-filter: blur(14px) saturate(120%);
+=======
+  background:var(--accent);
+  border:1px solid rgba(0,0,0,.06);
+  border-radius:16px;
+  padding:16px;
+  box-shadow:0 10px 28px rgba(0,0,0,.06);
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 }
 
 .editor-actions{
@@ -146,10 +205,17 @@ button:disabled{
 
 textarea{
   width:100%;
+<<<<<<< HEAD
   background:var(--card-strong);
   min-height:65vh;
   border:1px solid rgba(255,255,255,.45);
   border-radius:14px;
+=======
+  background:var(--card);
+  min-height:65vh;
+  border:1px solid var(--border);
+  border-radius:12px;
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
   padding:16px;
   font-family:ui-monospace,Consolas,monospace;
   font-size:15px;
@@ -165,6 +231,7 @@ button.primary{
   background-color:#1d4ed8 !important;
 }
 
+<<<<<<< HEAD
 .files-card{
   margin-top:16px;
   background:linear-gradient(160deg,rgba(255,255,255,.34),rgba(255,255,255,.18));
@@ -281,6 +348,8 @@ button.primary{
   color:#fff;
 }
 
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 @media (max-width: 720px){
   .wrap{ padding:14px; }
 
@@ -343,6 +412,7 @@ button.primary{
     width:100%;
     min-width:0;
   }
+<<<<<<< HEAD
 
   .files-head{
     align-items:stretch;
@@ -378,6 +448,8 @@ button.primary{
   .files-table td:nth-child(3){
     display:none;
   }
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 }
 </style>
 </head>
@@ -401,21 +473,28 @@ button.primary{
       <button id="btnOpenJson" disabled>Abrir JSON</button>
       <button id="btnSaveJson" disabled>Guardar JSON</button>
       <input id="fileJson" type="file" accept=".json,application/json" hidden>
+<<<<<<< HEAD
       <input id="fileAny" type="file" multiple hidden>
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
     </div>
   </div>
 
   <div id="appUI" hidden>
+<<<<<<< HEAD
     <div class="view-toggle">
       <button id="btnScreenFiles" class="is-active" disabled>Archivos</button>
       <button id="btnScreenText" disabled>Texto y JSON</button>
     </div>
 
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
     <div class="status">
       <span id="who">No autenticado</span> ·
       <span id="status">Listo</span>
     </div>
 
+<<<<<<< HEAD
     <div id="textScreen">
       <div class="editor-card">
         <textarea id="editor" placeholder="Texto compartido entre dispositivos…"></textarea>
@@ -459,16 +538,30 @@ button.primary{
         </table>
         <div id="filesEmpty" class="empty">No hay archivos todavia.</div>
       </div>
+=======
+    <div class="editor-card">
+      <textarea id="editor" placeholder="Texto compartido entre dispositivos…"></textarea>
+    </div>
+
+    <div class="editor-actions">
+      <button id="btnPaste" disabled>Pegar</button>
+      <button id="btnCopy" disabled>Copiar</button>
+      <button id="btnClear" disabled>Limpiar</button>
+      <button id="btnShare" disabled class="primary">Compartir</button>
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
     </div>
   </div>
 
 </div>
 
+<<<<<<< HEAD
 <script>
 // Cambia esta URL por la de tu Worker (Cloudflare)
 window.TRANS_POL_FILES_API_BASE = "https://transpol-files.adeje-gtd.workers.dev";
 </script>
 
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import {
@@ -492,6 +585,7 @@ const email=$("#email"), pass=$("#pass");
 const btnLogin=$("#btnLogin"), btnLogout=$("#btnLogout");
 const btnPaste=$("#btnPaste"), btnOpenJson=$("#btnOpenJson");
 const btnSaveJson=$("#btnSaveJson"), btnShare=$("#btnShare");
+<<<<<<< HEAD
 const btnImportFiles2=$("#btnImportFiles2");
 const btnRefreshFiles=$("#btnRefreshFiles");
 const btnScreenFiles=$("#btnScreenFiles"), btnScreenText=$("#btnScreenText");
@@ -499,12 +593,18 @@ const btnCopy = $("#btnCopy");
 const btnClear = $("#btnClear");
 const fileJson=$("#fileJson");
 const fileAny=$("#fileAny");
+=======
+const btnCopy = $("#btnCopy");
+const btnClear = $("#btnClear");
+const fileJson=$("#fileJson");
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 const editor=$("#editor");
 const who=$("#who"), status=$("#status");
 const authOut = $("#authOut");
 const authIn  = $("#authIn");
 const actions = $("#actions");
 const appUI   = $("#appUI");
+<<<<<<< HEAD
 const textScreen = $("#textScreen");
 const filesSection = $("#filesSection");
 const dropzone = $("#dropzone");
@@ -515,16 +615,21 @@ const quotaInfo = $("#quotaInfo");
 
 const FILES_API_BASE = (window.TRANS_POL_FILES_API_BASE || "").replace(/\/+$/,"");
 const MAX_STORAGE_BYTES = 10 * 1024 * 1024 * 1024;
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
 const db=getFirestore(app);
 
 let currentUid=null, unsub=null;
+<<<<<<< HEAD
 let filesBusy=false;
 let currentScreen="files";
 let filesUsedBytes=0;
 let filesMaxBytes=MAX_STORAGE_BYTES;
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 
 function setStatus(t){ status.textContent=t; }
 
@@ -548,15 +653,19 @@ function setUI(authd){
   btnShare.disabled = !authd;
   btnCopy.disabled = !authd;
   btnClear.disabled = !authd;
+<<<<<<< HEAD
   btnImportFiles2.disabled = !authd || !FILES_API_BASE;
   btnRefreshFiles.disabled = !authd || !FILES_API_BASE;
   btnScreenFiles.disabled = !authd;
   btnScreenText.disabled = !authd;
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 
   btnLogin.disabled = authd;
   email.disabled = authd;
   pass.disabled = authd;
 
+<<<<<<< HEAD
   if (dropzone){
     dropzone.setAttribute("aria-disabled",(!authd || !FILES_API_BASE) ? "true":"false");
   }
@@ -583,6 +692,11 @@ function setScreen(next){
   updateScreen();
 }
 
+=======
+  updateJsonBtn();
+}
+
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 btnLogin.onclick=async()=>{
   await setPersistence(auth,browserLocalPersistence);
   await signInWithEmailAndPassword(auth,email.value.trim(),pass.value);
@@ -607,10 +721,13 @@ btnClear.onclick = () => {
 };
 
 btnOpenJson.onclick=()=>fileJson.click();
+<<<<<<< HEAD
 btnImportFiles2.onclick=()=>fileAny.click();
 btnScreenFiles.onclick=()=>setScreen("files");
 btnScreenText.onclick=()=>setScreen("text");
 
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 fileJson.onchange=async()=>{
   const f=fileJson.files[0];
   if(!f)return;
@@ -620,12 +737,15 @@ fileJson.onchange=async()=>{
   updateJsonBtn();
 };
 
+<<<<<<< HEAD
 fileAny.onchange=async()=>{
   const list = Array.from(fileAny.files || []);
   await uploadFiles(list);
   fileAny.value = "";
 };
 
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 btnShare.onclick = async () => {
   btnShare.classList.remove("flash");
   void btnShare.offsetWidth;                 // fuerza reflow (reinicia efecto)
@@ -644,6 +764,7 @@ function isValidJson(){
   try{ JSON.parse(editor.value); return true; }catch{ return false; }
 }
 
+<<<<<<< HEAD
 function formatBytes(bytes){
   if(!Number.isFinite(bytes) || bytes < 0) return "-";
   const units = ["B","KB","MB","GB","TB"];
@@ -870,6 +991,8 @@ dropzone.addEventListener("drop",async(e)=>{
   await uploadFiles(dropped);
 });
 
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 function updateJsonBtn(){
   btnSaveJson.disabled=!(currentUid && isValidJson());
 }
@@ -916,23 +1039,29 @@ onAuthStateChanged(auth,(user)=>{
   if(!user){
     if (who) who.textContent = "No autenticado";
     if (editor) editor.value = "";
+<<<<<<< HEAD
     renderFiles([]);
     filesUsedBytes = 0;
     filesMaxBytes = MAX_STORAGE_BYTES;
     updateQuotaInfo();
     currentScreen = "files";
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
     setUI(false);
     return;
   }
 
   who.textContent=user.email;
   setUI(true);
+<<<<<<< HEAD
   setScreen("files");
   if (!FILES_API_BASE){
     setStatus("Configura window.TRANS_POL_FILES_API_BASE para activar archivos.");
   } else {
     refreshFiles();
   }
+=======
+>>>>>>> 1a8ba80ab23ec28ede64f001b26299fb228d880a
 
   const ref=doc(db,"notes",user.uid);
   unsub=onSnapshot(ref,s=>{
