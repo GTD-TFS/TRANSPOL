@@ -287,6 +287,58 @@ button.primary{
   flex-wrap:wrap;
 }
 
+.file-name-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.file-info-btn{
+  border:none;
+  background:transparent;
+  color:#f2b700;
+  font-size:18px;
+  min-height:auto;
+  min-width:auto;
+  padding:0;
+  line-height:1;
+  box-shadow:none;
+  transform:none;
+}
+
+.file-info-btn:hover{
+  box-shadow:none;
+  transform:none;
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(10,20,40,.32);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  z-index:120;
+}
+
+.modal-card{
+  width:min(460px,100%);
+  background:rgba(255,255,255,.95);
+  border:1px solid rgba(255,255,255,.8);
+  border-radius:16px;
+  padding:16px;
+}
+
+.modal-card h3{
+  margin:0 0 8px;
+}
+
+.modal-card p{
+  margin:8px 0;
+  color:#29466f;
+}
+
 .external-share input{
   flex:1;
   min-width:280px;
@@ -633,6 +685,15 @@ button.primary{
       <button id="btnLogoutFilesBottom" disabled>Salir</button>
     </div>
 
+    <div id="fileInfoModal" class="modal" hidden>
+      <div class="modal-card">
+        <h3 id="fileInfoTitle">Info del archivo</h3>
+        <p id="fileInfoCreated">Creado: -</p>
+        <p id="fileInfoExpires">Caduca: -</p>
+        <button id="btnCloseFileInfo">Cerrar</button>
+      </div>
+    </div>
+
     <input id="fileJson" type="file" accept=".json,application/json" hidden>
     <input id="fileAny" type="file" multiple hidden>
   </div>
@@ -691,6 +752,11 @@ const filesBody = $("#filesBody");
 const filesEmpty = $("#filesEmpty");
 const quotaInfo = $("#quotaInfo");
 const externalLink = $("#externalLink");
+const fileInfoModal = $("#fileInfoModal");
+const fileInfoTitle = $("#fileInfoTitle");
+const fileInfoCreated = $("#fileInfoCreated");
+const fileInfoExpires = $("#fileInfoExpires");
+const btnCloseFileInfo = $("#btnCloseFileInfo");
 
 const FILES_API_BASE = (window.TRANS_POL_FILES_API_BASE || "").replace(/\/+$/,"");
 const MAX_STORAGE_BYTES = 10 * 1024 * 1024 * 1024;
@@ -796,6 +862,7 @@ btnCopyExternal.onclick=async()=>{
   await navigator.clipboard.writeText(externalLink.value);
   setStatus("Enlace temporal copiado");
 };
+btnCloseFileInfo.onclick=()=>{ fileInfoModal.hidden = true; };
 
 fileJson.onchange=async()=>{
   const f=fileJson.files[0];
@@ -883,7 +950,9 @@ function normalizeFiles(payload){
     key: f.key || f.name || "",
     name: f.name || f.key || "",
     size: Number(f.size || 0),
-    updatedAt: f.updatedAt || f.lastModified || f.uploadedAt || null
+    updatedAt: f.updatedAt || f.lastModified || f.uploadedAt || null,
+    createdAt: f.createdAt || f.uploadedAt || null,
+    expiresAt: f.expiresAt || null
   })).filter(f=>f.key && f.name);
 }
 
@@ -900,7 +969,18 @@ function renderFiles(list){
     const tr = document.createElement("tr");
 
     const tdName = document.createElement("td");
-    tdName.textContent = file.name;
+    const nameWrap = document.createElement("div");
+    nameWrap.className = "file-name-wrap";
+    const nameText = document.createElement("span");
+    nameText.textContent = file.name;
+    const infoBtn = document.createElement("button");
+    infoBtn.className = "file-info-btn";
+    infoBtn.textContent = "ⓘ";
+    infoBtn.title = "Informacion";
+    infoBtn.setAttribute("aria-label","Informacion del archivo");
+    infoBtn.onclick = () => openFileInfo(file);
+    nameWrap.append(nameText, infoBtn);
+    tdName.append(nameWrap);
 
     const tdSize = document.createElement("td");
     tdSize.textContent = formatBytes(file.size);
@@ -975,11 +1055,12 @@ async function createExternalLink(){
   if(!currentUid || !FILES_API_BASE) return;
   setFilesBusy(true);
   try{
-    const expiresText = prompt("Minutos de validez del enlace (5-1440):","30");
+    const expiresText = prompt("Horas de validez del enlace (1-24):","1");
     if(expiresText === null){ return; }
     const mbText = prompt("Tamano maximo por archivo en MB (1-200):","25");
     if(mbText === null){ return; }
-    const expiresMinutes = Math.max(5, Math.min(1440, Number(expiresText) || 30));
+    const hours = Math.max(1, Math.min(24, Number(expiresText) || 1));
+    const expiresMinutes = hours * 60;
     const maxMb = Math.max(1, Math.min(200, Number(mbText) || 25));
     const maxBytes = Math.floor(maxMb * 1024 * 1024);
 
@@ -997,6 +1078,13 @@ async function createExternalLink(){
   }finally{
     setFilesBusy(false);
   }
+}
+
+function openFileInfo(file){
+  fileInfoTitle.textContent = file.name || "Info del archivo";
+  fileInfoCreated.textContent = `Creado: ${formatDate(file.createdAt)}`;
+  fileInfoExpires.textContent = `Caduca: ${formatDate(file.expiresAt)} (3 dias tras subida)`;
+  fileInfoModal.hidden = false;
 }
 
 async function uploadFiles(files){

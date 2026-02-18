@@ -9,6 +9,7 @@ let jwksCache = {
 const DEFAULT_MAX_TOTAL_BYTES = 10 * 1024 * 1024 * 1024;
 const DEFAULT_EXTERNAL_EXPIRES_MINUTES = 30;
 const DEFAULT_EXTERNAL_MAX_BYTES = 25 * 1024 * 1024;
+const FILE_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
 
 export default {
   async fetch(request, env) {
@@ -77,7 +78,9 @@ async function listFiles(env, prefix) {
     key: obj.key.slice(prefix.length),
     name: obj.customMetadata?.name || obj.key.slice(prefix.length),
     size: obj.size,
-    updatedAt: obj.uploaded?.toISOString?.() || null
+    updatedAt: obj.uploaded?.toISOString?.() || null,
+    createdAt: obj.uploaded?.toISOString?.() || null,
+    expiresAt: obj.uploaded ? new Date(new Date(obj.uploaded).getTime() + FILE_RETENTION_MS).toISOString() : null
   }));
 
   return json({ files, usedBytes, maxBytes, remainingBytes: Math.max(0, maxBytes - usedBytes) }, 200, env);
@@ -562,6 +565,7 @@ function contentDisposition(filename) {
 function externalUploadFormHtml(token, maxBytes, exp) {
   const maxMb = Math.max(1, Math.floor(maxBytes / (1024 * 1024)));
   const expText = new Date(exp * 1000).toLocaleString("es-ES");
+  const hoursLeft = Math.max(1, Math.ceil((exp * 1000 - Date.now()) / (60 * 60 * 1000)));
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Subida segura</title>
@@ -572,17 +576,27 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Arial;background:line
 h1{margin:0 0 8px;font-size:22px}
 p{margin:8px 0;color:#3b4f73}
 .meta{font-size:14px;background:#f4f9ff;border:1px solid #d7e9ff;padding:10px;border-radius:10px}
-input[type=file]{width:100%;padding:12px;border:1px solid #c8dcf7;border-radius:10px;background:#fff}
+.filepick{display:inline-block;width:100%;text-align:center;margin-top:12px;padding:12px;border:none;border-radius:10px;background:#bfe8ff;color:#0b3f7a;font-weight:700;cursor:pointer}
+.filename{margin-top:8px;font-size:14px;color:#335}
+input[type=file]{display:none}
 button{margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:#0b6bff;color:#fff;font-weight:700;cursor:pointer}
 </style></head><body><div class="wrap"><div class="card">
 <h1>Subida segura de archivo</h1>
 <p>Este enlace permite una sola subida.</p>
-<div class="meta">Tamano maximo: ${maxMb} MB<br>Caduca: ${expText}</div>
+<div class="meta">Tamano maximo: ${maxMb} MB<br>Caduca en: ${hoursLeft} h<br>Caduca el: ${expText}</div>
 <form method="post" enctype="multipart/form-data" action="/external-upload?token=${encodeURIComponent(token)}">
-  <p><input type="file" name="file" required></p>
+  <label class="filepick" for="external-file">Seleccionar archivo</label>
+  <input id="external-file" type="file" name="file" required>
+  <div id="file-name" class="filename">Ningun archivo seleccionado</div>
   <button type="submit">Subir archivo</button>
 </form>
-</div></div></body></html>`;
+</div></div>
+<script>
+const input=document.getElementById('external-file');
+const label=document.getElementById('file-name');
+input.addEventListener('change',()=>{label.textContent=input.files?.[0]?.name||'Ningun archivo seleccionado';});
+</script>
+</body></html>`;
 }
 
 function externalUploadSuccessHtml(name) {
