@@ -6,6 +6,7 @@ compatibility_date = "2026-02-17"
 FIREBASE_PROJECT_ID = "transpol-ead50"
 ALLOWED_ORIGIN = "*"
 MAX_TOTAL_BYTES = "10737418240"
+EXTERNAL_UPLOAD_SECRET = "CAMBIAR_EN_CLOUDFLARE"
 
 [[r2_buckets]]
 binding = "MY_BUCKET"

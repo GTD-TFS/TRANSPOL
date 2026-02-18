@@ -280,6 +280,18 @@ button.primary{
   padding:8px 10px;
 }
 
+.external-share{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.external-share input{
+  flex:1;
+  min-width:280px;
+}
+
 .dropzone{
   margin-top:12px;
   border:2px dashed rgba(43,130,255,.5);
@@ -470,6 +482,16 @@ button.primary{
     width:100%;
   }
 
+  .external-share{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .external-share input{
+    grid-column:1 / -1;
+    min-width:0;
+  }
+
   .view-toggle{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -577,6 +599,12 @@ button.primary{
         </div>
       </div>
 
+      <div class="external-share">
+        <button id="btnCreateExternal" disabled>Generar enlace temporal</button>
+        <button id="btnCopyExternal" disabled>Copiar enlace</button>
+        <input id="externalLink" readonly placeholder="Enlace temporal para subida externa (un solo uso)">
+      </div>
+
       <div id="dropzone" class="dropzone">
         Arrastra y suelta archivos aqui o pulsa "Subir archivos"
       </div>
@@ -642,6 +670,8 @@ const btnPaste=$("#btnPaste"), btnOpenJson=$("#btnOpenJson");
 const btnSaveJson=$("#btnSaveJson"), btnShare=$("#btnShare");
 const btnImportFiles2=$("#btnImportFiles2");
 const btnRefreshFiles=$("#btnRefreshFiles");
+const btnCreateExternal=$("#btnCreateExternal");
+const btnCopyExternal=$("#btnCopyExternal");
 const btnScreenFiles=$("#btnScreenFiles"), btnScreenText=$("#btnScreenText");
 const btnCopy = $("#btnCopy");
 const btnClear = $("#btnClear");
@@ -660,6 +690,7 @@ const filesTable = $("#filesTable");
 const filesBody = $("#filesBody");
 const filesEmpty = $("#filesEmpty");
 const quotaInfo = $("#quotaInfo");
+const externalLink = $("#externalLink");
 
 const FILES_API_BASE = (window.TRANS_POL_FILES_API_BASE || "").replace(/\/+$/,"");
 const MAX_STORAGE_BYTES = 10 * 1024 * 1024 * 1024;
@@ -697,6 +728,8 @@ function setUI(authd){
   btnClear.disabled = !authd;
   btnImportFiles2.disabled = !authd || !FILES_API_BASE;
   btnRefreshFiles.disabled = !authd || !FILES_API_BASE;
+  btnCreateExternal.disabled = !authd || !FILES_API_BASE;
+  btnCopyExternal.disabled = !authd || !FILES_API_BASE || !externalLink?.value;
   btnScreenFiles.disabled = !authd;
   btnScreenText.disabled = !authd;
 
@@ -757,6 +790,12 @@ btnOpenJson.onclick=()=>fileJson.click();
 btnImportFiles2.onclick=()=>fileAny.click();
 btnScreenFiles.onclick=()=>setScreen("files");
 btnScreenText.onclick=()=>setScreen("text");
+btnCreateExternal.onclick=createExternalLink;
+btnCopyExternal.onclick=async()=>{
+  if(!externalLink.value) return;
+  await navigator.clipboard.writeText(externalLink.value);
+  setStatus("Enlace temporal copiado");
+};
 
 fileJson.onchange=async()=>{
   const f=fileJson.files[0];
@@ -925,9 +964,39 @@ function setFilesBusy(next){
   filesBusy = next;
   if(btnImportFiles2) btnImportFiles2.disabled = next || !currentUid || !FILES_API_BASE;
   if(btnRefreshFiles) btnRefreshFiles.disabled = next || !currentUid || !FILES_API_BASE;
+  if(btnCreateExternal) btnCreateExternal.disabled = next || !currentUid || !FILES_API_BASE;
+  if(btnCopyExternal) btnCopyExternal.disabled = next || !currentUid || !FILES_API_BASE || !externalLink?.value;
   document.querySelectorAll(".file-actions button").forEach((btn)=>{
     btn.disabled = next;
   });
+}
+
+async function createExternalLink(){
+  if(!currentUid || !FILES_API_BASE) return;
+  setFilesBusy(true);
+  try{
+    const expiresText = prompt("Minutos de validez del enlace (5-1440):","30");
+    if(expiresText === null){ return; }
+    const mbText = prompt("Tamano maximo por archivo en MB (1-200):","25");
+    if(mbText === null){ return; }
+    const expiresMinutes = Math.max(5, Math.min(1440, Number(expiresText) || 30));
+    const maxMb = Math.max(1, Math.min(200, Number(mbText) || 25));
+    const maxBytes = Math.floor(maxMb * 1024 * 1024);
+
+    const res = await filesFetch("/external-upload-token",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ expiresMinutes, maxBytes })
+    });
+    const data = await res.json();
+    externalLink.value = data.uploadUrl;
+    btnCopyExternal.disabled = false;
+    setStatus("Enlace temporal generado (un solo uso)");
+  }catch(err){
+    setStatus(`Error al generar enlace temporal: ${err.message}`);
+  }finally{
+    setFilesBusy(false);
+  }
 }
 
 async function uploadFiles(files){
@@ -1070,6 +1139,8 @@ onAuthStateChanged(auth,(user)=>{
     filesUsedBytes = 0;
     filesMaxBytes = MAX_STORAGE_BYTES;
     updateQuotaInfo();
+    if(externalLink) externalLink.value = "";
+    if(btnCopyExternal) btnCopyExternal.disabled = true;
     currentScreen = "files";
     setUI(false);
     return;
