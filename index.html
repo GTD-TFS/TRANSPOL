@@ -1026,6 +1026,8 @@ function renderFiles(list){
 
 async function refreshFiles(){
   if(!currentUid || !FILES_API_BASE) return;
+  if(externalLink) externalLink.value = "";
+  if(btnCopyExternal) btnCopyExternal.disabled = true;
   try{
     setStatus("Cargando archivos...");
     const res = await filesFetch("/files");
@@ -1057,11 +1059,11 @@ async function createExternalLink(){
   try{
     const expiresText = prompt("Horas de validez del enlace (1-24):","1");
     if(expiresText === null){ return; }
-    const mbText = prompt("Tamano maximo por archivo en MB (1-200):","25");
+    const mbText = prompt("Tamano maximo total en MB (1-5120):","25");
     if(mbText === null){ return; }
     const hours = Math.max(1, Math.min(24, Number(expiresText) || 1));
     const expiresMinutes = hours * 60;
-    const maxMb = Math.max(1, Math.min(200, Number(mbText) || 25));
+    const maxMb = Math.max(1, Math.min(5120, Number(mbText) || 25));
     const maxBytes = Math.floor(maxMb * 1024 * 1024);
 
     const res = await filesFetch("/external-upload-token",{
