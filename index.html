@@ -614,6 +614,7 @@ button.primary{
 <script>
 // Cambia esta URL por la de tu Worker (Cloudflare)
 window.TRANS_POL_FILES_API_BASE = "https://transpol-files.adeje-gtd.workers.dev";
+window.TRANS_POL_FIREBASE_API_KEY = "AIzaSyCt1QjhjHrFRgjaYQ9INki3g5SftrZZpUs";
 </script>
 
 <script type="module">
@@ -627,7 +628,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA5Bq3HOVvXBkYJBHk18mcdzgqWv-FXidU",
+  apiKey: window.TRANS_POL_FIREBASE_API_KEY || "",
   authDomain: "transpol-ead50.firebaseapp.com",
   projectId: "transpol-ead50",
   appId: "1:76597755309:web:62815e1b8fd3766a81f524"
