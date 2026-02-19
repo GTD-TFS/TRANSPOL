@@ -124,6 +124,37 @@ button:disabled{
   -webkit-backdrop-filter: blur(14px) saturate(120%);
 }
 
+.bundle-bar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+
+.bundle-chips{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+.bundle-chip{
+  border:none;
+  border-radius:999px;
+  min-height:30px;
+  padding:6px 10px;
+  font-size:12px;
+  font-weight:700;
+  color:#fff;
+  background:linear-gradient(135deg,#1f3b6d,#2f5fa8);
+  box-shadow:0 8px 18px rgba(10,28,60,.18);
+}
+
+.bundle-chip:hover{
+  transform:translateY(-1px);
+}
+
 .editor-actions{
   margin-top:12px;
   display:flex;
@@ -201,6 +232,31 @@ button:disabled{
 
 .files-bottom-bar{
   display:none;
+}
+
+.save-toast{
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%) scale(.92);
+  z-index:200;
+  width:90px;
+  height:90px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:46px;
+  background:rgba(255,255,255,.9);
+  box-shadow:0 22px 42px rgba(10,28,60,.25);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .3s ease, transform .3s ease;
+}
+
+.save-toast.show{
+  opacity:1;
+  transform:translate(-50%,-50%) scale(1);
 }
 
 textarea{
@@ -505,6 +561,11 @@ button.primary{
     font-size:13px;
   }
 
+  .bundle-bar{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
   .json-actions{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -619,6 +680,10 @@ button.primary{
 
     <div id="textScreen">
       <div class="editor-card">
+        <div class="bundle-bar">
+          <button id="btnPackText" type="button">Compactar bloque</button>
+          <div id="bundleChips" class="bundle-chips"></div>
+        </div>
         <textarea id="editor" placeholder="Texto compartido entre dispositivos…"></textarea>
       </div>
 
@@ -700,6 +765,8 @@ button.primary{
 
 </div>
 
+<div id="saveToast" class="save-toast" aria-hidden="true">👍🏼</div>
+
 <script>
 // Cambia esta URL por la de tu Worker (Cloudflare)
 window.TRANS_POL_FILES_API_BASE = "https://transpol-files.adeje-gtd.workers.dev";
@@ -729,6 +796,7 @@ const email=$("#email"), pass=$("#pass");
 const btnLogin=$("#btnLogin"), btnLogoutText=$("#btnLogoutText"), btnLogoutFiles=$("#btnLogoutFiles"), btnLogoutFilesBottom=$("#btnLogoutFilesBottom");
 const btnPaste=$("#btnPaste"), btnOpenJson=$("#btnOpenJson");
 const btnSaveJson=$("#btnSaveJson"), btnShare=$("#btnShare");
+const btnPackText=$("#btnPackText");
 const btnImportFiles2=$("#btnImportFiles2");
 const btnRefreshFiles=$("#btnRefreshFiles");
 const btnCreateExternal=$("#btnCreateExternal");
@@ -752,6 +820,8 @@ const filesBody = $("#filesBody");
 const filesEmpty = $("#filesEmpty");
 const quotaInfo = $("#quotaInfo");
 const externalLink = $("#externalLink");
+const bundleChips = $("#bundleChips");
+const saveToast = $("#saveToast");
 const fileInfoModal = $("#fileInfoModal");
 const fileInfoTitle = $("#fileInfoTitle");
 const fileInfoCreated = $("#fileInfoCreated");
@@ -770,6 +840,8 @@ let filesBusy=false;
 let currentScreen="files";
 let filesUsedBytes=0;
 let filesMaxBytes=MAX_STORAGE_BYTES;
+let textBundles=[];
+let toastTimer=null;
 
 function setStatus(t){ status.textContent=t; }
 
@@ -790,6 +862,7 @@ function setUI(authd){
   btnOpenJson.disabled = !authd;
   btnSaveJson.disabled = !authd;
   btnShare.disabled = !authd;
+  btnPackText.disabled = !authd;
   btnCopy.disabled = !authd;
   btnClear.disabled = !authd;
   btnImportFiles2.disabled = !authd || !FILES_API_BASE;
@@ -856,6 +929,7 @@ btnOpenJson.onclick=()=>fileJson.click();
 btnImportFiles2.onclick=()=>fileAny.click();
 btnScreenFiles.onclick=()=>setScreen("files");
 btnScreenText.onclick=()=>setScreen("text");
+btnPackText.onclick=packCurrentTextIntoBundle;
 btnCreateExternal.onclick=createExternalLink;
 btnCopyExternal.onclick=async()=>{
   if(!externalLink.value) return;
@@ -887,14 +961,91 @@ btnShare.onclick = async () => {
 
   await setDoc(doc(db,"notes",currentUid),{
     text: editor.value,
+    bundles: textBundles,
     updatedAt: serverTimestamp()
   });
 
   setStatus("Persistido");
+  showPersistToast();
 };
 
 function isValidJson(){
   try{ JSON.parse(editor.value); return true; }catch{ return false; }
+}
+
+function normalizeBundles(value){
+  const source = Array.isArray(value) ? value : [];
+  return source.map((b)=>({
+    id: String(b?.id || ""),
+    name: String(b?.name || ""),
+    text: String(b?.text || ""),
+    ts: Number(b?.ts || Date.now())
+  })).filter((b)=>b.id && b.name);
+}
+
+function nextBundleName(){
+  const used = new Set();
+  textBundles.forEach((b)=>{
+    const m = String(b.name || "").match(/^Texto\s+(\d+)$/i);
+    if (m) used.add(Number(m[1]));
+  });
+  let n = 1;
+  while(used.has(n)) n++;
+  return `Texto ${n}`;
+}
+
+function renderBundleChips(){
+  if(!bundleChips) return;
+  bundleChips.innerHTML = "";
+  for(const b of textBundles){
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "bundle-chip";
+    chip.textContent = b.name;
+    chip.title = "Restaurar bloque";
+    chip.onclick = () => restoreBundleToEditor(b.id);
+    bundleChips.append(chip);
+  }
+}
+
+function packCurrentTextIntoBundle(){
+  const txt = String(editor.value || "").trim();
+  if(!txt){
+    setStatus("No hay texto para compactar");
+    return;
+  }
+  textBundles.push({
+    id: `b_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,7)}`,
+    name: nextBundleName(),
+    text: editor.value,
+    ts: Date.now()
+  });
+  editor.value = "";
+  renderBundleChips();
+  updateJsonBtn();
+  setStatus("Bloque compactado");
+}
+
+function restoreBundleToEditor(bundleId){
+  const idx = textBundles.findIndex((b)=>b.id === bundleId);
+  if(idx < 0) return;
+  const b = textBundles[idx];
+  editor.value = editor.value ? `${editor.value}\n\n${b.text}` : b.text;
+  textBundles.splice(idx,1);
+  renderBundleChips();
+  updateJsonBtn();
+  setStatus(`Bloque restaurado: ${b.name}`);
+}
+
+function showPersistToast(){
+  if(!saveToast) return;
+  saveToast.classList.remove("show");
+  if(toastTimer){ clearTimeout(toastTimer); toastTimer = null; }
+  void saveToast.offsetWidth;
+  saveToast.classList.add("show");
+  toastTimer = setTimeout(()=>{
+    saveToast.classList.remove("show");
+  },1500);
 }
 
 function formatBytes(bytes){
@@ -1228,6 +1379,8 @@ onAuthStateChanged(auth,(user)=>{
     renderFiles([]);
     filesUsedBytes = 0;
     filesMaxBytes = MAX_STORAGE_BYTES;
+    textBundles = [];
+    renderBundleChips();
     updateQuotaInfo();
     if(externalLink) externalLink.value = "";
     if(btnCopyExternal) btnCopyExternal.disabled = true;
@@ -1247,7 +1400,10 @@ onAuthStateChanged(auth,(user)=>{
 
   const ref=doc(db,"notes",user.uid);
   unsub=onSnapshot(ref,s=>{
-    editor.value=s.data()?.text||"";
+    const data = s.data() || {};
+    editor.value = data.text || "";
+    textBundles = normalizeBundles(data.bundles);
+    renderBundleChips();
     setStatus("");
     updateJsonBtn();
   });
