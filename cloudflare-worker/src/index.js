@@ -9,6 +9,7 @@ let jwksCache = {
 const DEFAULT_MAX_TOTAL_BYTES = 10 * 1024 * 1024 * 1024;
 const DEFAULT_EXTERNAL_EXPIRES_MINUTES = 30;
 const DEFAULT_EXTERNAL_MAX_BYTES = 25 * 1024 * 1024;
+const MAX_EXTERNAL_TOTAL_BYTES = 5 * 1024 * 1024 * 1024;
 const FILE_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
 
 export default {
@@ -71,10 +72,20 @@ async function listFiles(env, prefix) {
     prefix,
     include: ["httpMetadata", "customMetadata"]
   });
+  const now = Date.now();
+  const keptObjects = [];
+  for (const obj of listing.objects) {
+    const uploadedMs = obj.uploaded ? new Date(obj.uploaded).getTime() : 0;
+    if (uploadedMs && uploadedMs + FILE_RETENTION_MS <= now) {
+      await env.MY_BUCKET.delete(obj.key);
+      continue;
+    }
+    keptObjects.push(obj);
+  }
   const maxBytes = getMaxTotalBytes(env);
-  const usedBytes = listing.objects.reduce((acc, obj) => acc + (obj.size || 0), 0);
+  const usedBytes = keptObjects.reduce((acc, obj) => acc + (obj.size || 0), 0);
 
-  const files = listing.objects.map((obj) => ({
+  const files = keptObjects.map((obj) => ({
     key: obj.key.slice(prefix.length),
     name: obj.customMetadata?.name || obj.key.slice(prefix.length),
     size: obj.size,
@@ -134,7 +145,7 @@ async function createExternalUploadToken(request, env, uid) {
   const expiresMinutesRaw = Number(body.expiresMinutes || DEFAULT_EXTERNAL_EXPIRES_MINUTES);
   const expiresMinutes = clamp(Math.floor(expiresMinutesRaw), 5, 1440);
   const maxBytesRaw = Number(body.maxBytes || DEFAULT_EXTERNAL_MAX_BYTES);
-  const maxBytes = clamp(Math.floor(maxBytesRaw), 1, 200 * 1024 * 1024);
+  const maxBytes = clamp(Math.floor(maxBytesRaw), 1, MAX_EXTERNAL_TOTAL_BYTES);
   const subpath = sanitizeSubpath(body.subpath || "");
 
   const now = Math.floor(Date.now() / 1000);
@@ -164,17 +175,17 @@ async function externalUpload(request, env, url) {
   }
 
   const payload = await verifyExternalToken(token, secret);
-  await assertTokenNotUsed(env, payload);
+  const tokenState = await getTokenState(env, payload);
 
   const contentType = request.headers.get("content-type") || "";
   const isMultipart = contentType.toLowerCase().includes("multipart/form-data");
   if (isMultipart) {
-    return await externalUploadFromForm(request, env, payload);
+    return await externalUploadFromForm(request, env, payload, tokenState);
   }
-  return await externalUploadFromRaw(request, env, url, payload);
+  return await externalUploadFromRaw(request, env, url, payload, tokenState);
 }
 
-async function externalUploadFromRaw(request, env, url, payload) {
+async function externalUploadFromRaw(request, env, url, payload, tokenState) {
   const rawName = (url.searchParams.get("name") || "").trim();
   if (!rawName) {
     throw httpError(400, "Falta el parametro name");
@@ -187,37 +198,68 @@ async function externalUploadFromRaw(request, env, url, payload) {
   if (incomingBytes <= 0) {
     throw httpError(400, "No se pudo determinar el tamano del archivo");
   }
-  const objectKey = await ensureExternalCapacity(env, payload, safeName, incomingBytes);
+  const objectKey = await ensureExternalCapacity(payload, safeName, incomingBytes, tokenState);
+  const prefix = `${payload.uid}/`;
+  const maxTotal = getMaxTotalBytes(env);
+  const usage = await getUsageBytes(env, prefix);
+  if (usage + incomingBytes > maxTotal) {
+    throw httpError(413, "No hay espacio suficiente en la cuenta");
+  }
   const reqType = request.headers.get("content-type") || "application/octet-stream";
   await env.MY_BUCKET.put(objectKey, request.body, {
     httpMetadata: { contentType: reqType },
     customMetadata: { name: safeName, external: "1" }
   });
-  await markTokenUsed(env, payload);
+  await updateTokenState(env, payload, tokenState.usedBytes + incomingBytes);
   return json({ ok: true, key: objectKey.split("/").slice(1).join("/") }, 200, env);
 }
 
-async function externalUploadFromForm(request, env, payload) {
+async function externalUploadFromForm(request, env, payload, tokenState) {
   const form = await request.formData();
-  const maybeFile = form.get("file");
-  if (!maybeFile || typeof maybeFile === "string") {
-    throw httpError(400, "Debes adjuntar un archivo");
+  const rawFiles = form.getAll("file");
+  const files = rawFiles.filter((item) => item && typeof item !== "string");
+  if (!files.length) {
+    throw httpError(400, "Debes adjuntar al menos un archivo");
   }
-  const safeName = sanitizeName(maybeFile.name || "archivo.bin");
-  if (!safeName) {
-    throw httpError(400, "Nombre de archivo invalido");
+
+  let totalIncomingBytes = 0;
+  const parsed = [];
+  for (const item of files) {
+    const safeName = sanitizeName(item.name || "archivo.bin");
+    if (!safeName) {
+      throw httpError(400, "Nombre de archivo invalido");
+    }
+    const incomingBytes = Number(item.size || 0);
+    if (incomingBytes <= 0) {
+      throw httpError(400, "Archivo vacio o invalido");
+    }
+    totalIncomingBytes += incomingBytes;
+    parsed.push({ safeName, incomingBytes, file: item });
   }
-  const incomingBytes = Number(maybeFile.size || 0);
-  if (incomingBytes <= 0) {
-    throw httpError(400, "Archivo vacio o invalido");
+
+  if (tokenState.usedBytes + totalIncomingBytes > payload.maxBytes) {
+    throw httpError(413, "El total de archivos excede el tamano maximo permitido por el token");
   }
-  const objectKey = await ensureExternalCapacity(env, payload, safeName, incomingBytes);
-  await env.MY_BUCKET.put(objectKey, maybeFile.stream(), {
-    httpMetadata: { contentType: maybeFile.type || "application/octet-stream" },
-    customMetadata: { name: safeName, external: "1" }
-  });
-  await markTokenUsed(env, payload);
-  return new Response(externalUploadSuccessHtml(safeName), {
+
+  const prefix = `${payload.uid}/`;
+  const maxTotal = getMaxTotalBytes(env);
+  const usage = await getUsageBytes(env, prefix);
+  if (usage + totalIncomingBytes > maxTotal) {
+    throw httpError(413, "No hay espacio suficiente en la cuenta");
+  }
+
+  const uploadedNames = [];
+  for (const item of parsed) {
+    const objectKey = buildExternalObjectKey(payload, item.safeName);
+    await env.MY_BUCKET.put(objectKey, item.file.stream(), {
+      httpMetadata: { contentType: item.file.type || "application/octet-stream" },
+      customMetadata: { name: item.safeName, external: "1" }
+    });
+    uploadedNames.push(item.safeName);
+  }
+
+  await updateTokenState(env, payload, tokenState.usedBytes + totalIncomingBytes);
+  return new Response(externalUploadSuccessHtml(uploadedNames), {
     status: 200,
     headers: {
       "content-type": "text/html; charset=utf-8",
@@ -226,18 +268,16 @@ async function externalUploadFromForm(request, env, payload) {
   });
 }
 
-async function ensureExternalCapacity(env, payload, safeName, incomingBytes) {
-  if (incomingBytes > payload.maxBytes) {
-    throw httpError(413, "Archivo excede el tamano maximo permitido por el token");
+async function ensureExternalCapacity(payload, safeName, incomingBytes, tokenState) {
+  if (incomingBytes > payload.maxBytes || tokenState.usedBytes + incomingBytes > payload.maxBytes) {
+    throw httpError(413, "Archivo excede el tamano maximo total permitido por el token");
   }
-  const prefix = `${payload.uid}/`;
-  const maxTotal = getMaxTotalBytes(env);
-  const usage = await getUsageBytes(env, prefix);
-  if (usage + incomingBytes > maxTotal) {
-    throw httpError(413, "No hay espacio suficiente en la cuenta");
-  }
+  return buildExternalObjectKey(payload, safeName);
+}
+
+function buildExternalObjectKey(payload, safeName) {
   const folder = payload.subpath ? `${payload.subpath}/` : "";
-  return `${prefix}${folder}${safeName}`;
+  return `${payload.uid}/${folder}${safeName}`;
 }
 
 async function externalUploadPage(request, env, url) {
@@ -250,7 +290,6 @@ async function externalUploadPage(request, env, url) {
   }
   try {
     const payload = await verifyExternalToken(token, getExternalUploadSecret(env));
-    await assertTokenNotUsed(env, payload);
     return new Response(externalUploadFormHtml(token, payload.maxBytes, payload.exp), {
       status: 200,
       headers: { "content-type": "text/html; charset=utf-8", ...corsHeaders(env) }
@@ -374,17 +413,23 @@ async function verifyExternalToken(token, secret) {
   return payload;
 }
 
-async function assertTokenNotUsed(env, payload) {
+async function getTokenState(env, payload) {
   const stateKey = `${TOKEN_STATE_PREFIX}${payload.uid}/${payload.nonce}.json`;
   const existing = await env.MY_BUCKET.get(stateKey);
-  if (existing) {
-    throw httpError(409, "Token temporal ya usado");
+  if (!existing) {
+    return { usedBytes: 0 };
+  }
+  try {
+    const state = await existing.json();
+    return { usedBytes: Number(state?.usedBytes || 0) };
+  } catch {
+    return { usedBytes: 0 };
   }
 }
 
-async function markTokenUsed(env, payload) {
+async function updateTokenState(env, payload, usedBytes) {
   const stateKey = `${TOKEN_STATE_PREFIX}${payload.uid}/${payload.nonce}.json`;
-  const body = JSON.stringify({ usedAt: new Date().toISOString(), exp: payload.exp });
+  const body = JSON.stringify({ usedAt: new Date().toISOString(), exp: payload.exp, usedBytes });
   await env.MY_BUCKET.put(stateKey, body, { httpMetadata: { contentType: "application/json" } });
 }
 
@@ -564,45 +609,142 @@ function contentDisposition(filename) {
 
 function externalUploadFormHtml(token, maxBytes, exp) {
   const maxMb = Math.max(1, Math.floor(maxBytes / (1024 * 1024)));
-  const expText = new Date(exp * 1000).toLocaleString("es-ES");
-  const hoursLeft = Math.max(1, Math.ceil((exp * 1000 - Date.now()) / (60 * 60 * 1000)));
+  const expText = formatCanaryDate(exp * 1000);
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Subida segura</title>
 <style>
+*{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Arial;background:linear-gradient(145deg,#ecf5ff,#dcefff);color:#10203a}
 .wrap{max-width:640px;margin:0 auto;padding:22px}
 .card{background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.8);border-radius:16px;padding:18px;box-shadow:0 18px 40px rgba(10,28,60,.14)}
 h1{margin:0 0 8px;font-size:22px}
 p{margin:8px 0;color:#3b4f73}
 .meta{font-size:14px;background:#f4f9ff;border:1px solid #d7e9ff;padding:10px;border-radius:10px}
-.filepick{display:inline-block;width:100%;text-align:center;margin-top:12px;padding:12px;border:none;border-radius:10px;background:#bfe8ff;color:#0b3f7a;font-weight:700;cursor:pointer}
+.filepick{display:block;width:100%;max-width:100%;text-align:center;margin-top:12px;padding:12px;border:none;border-radius:10px;background:#bfe8ff;color:#0b3f7a;font-weight:700;cursor:pointer}
 .filename{margin-top:8px;font-size:14px;color:#335}
 input[type=file]{display:none}
 button{margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:#0b6bff;color:#fff;font-weight:700;cursor:pointer}
+button[disabled]{opacity:.6;cursor:not-allowed}
+.progress-list{display:grid;gap:8px;margin-top:12px}
+.progress-item{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:#f7fbff;border:1px solid #d7e9ff}
+.progress-head{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.progress-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.progress-track{width:100%;height:10px;border-radius:999px;background:#dceeff;overflow:hidden}
+.progress-fill{width:0%;height:100%;border-radius:999px;background:linear-gradient(90deg,#0bc5ff,#0b6bff)}
+.error{margin-top:10px;color:#8d2020;font-size:14px}
 </style></head><body><div class="wrap"><div class="card">
 <h1>Subida segura de archivo</h1>
-<p>Este enlace permite una sola subida.</p>
-<div class="meta">Tamano maximo: ${maxMb} MB<br>Caduca en: ${hoursLeft} h<br>Caduca el: ${expText}</div>
-<form method="post" enctype="multipart/form-data" action="/external-upload?token=${encodeURIComponent(token)}">
+<p>Este enlace permite una unica sesion de subida.</p>
+<div class="meta">Tamano maximo total: ${maxMb} MB<br>Caduca el: ${expText} (hora Canarias)</div>
+<form id="upload-form">
   <label class="filepick" for="external-file">Seleccionar archivo</label>
-  <input id="external-file" type="file" name="file" required>
+  <input id="external-file" type="file" name="file" multiple required>
   <div id="file-name" class="filename">Ningun archivo seleccionado</div>
-  <button type="submit">Subir archivo</button>
+  <div id="progress-list" class="progress-list" hidden></div>
+  <div id="error-box" class="error" hidden></div>
+  <button type="submit">Subir archivos</button>
 </form>
 </div></div>
 <script>
 const input=document.getElementById('external-file');
 const label=document.getElementById('file-name');
-input.addEventListener('change',()=>{label.textContent=input.files?.[0]?.name||'Ningun archivo seleccionado';});
+const form=document.getElementById('upload-form');
+const progressList=document.getElementById('progress-list');
+const errorBox=document.getElementById('error-box');
+const submitBtn=form.querySelector('button');
+input.addEventListener('change',()=>{
+  const list=Array.from(input.files||[]);
+  if(!list.length){label.textContent='Ningun archivo seleccionado';return;}
+  const total=list.reduce((a,f)=>a+(f.size||0),0);
+  label.textContent=list.length+' archivo(s) · '+(total/1024/1024).toFixed(2)+' MB';
+});
+
+form.addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  errorBox.hidden = true;
+  errorBox.textContent = '';
+  const files = Array.from(input.files || []);
+  if(!files.length){
+    errorBox.hidden = false;
+    errorBox.textContent = 'Selecciona al menos un archivo.';
+    return;
+  }
+  const total = files.reduce((acc, file)=>acc + (file.size || 0), 0);
+  if (total > ${Math.floor(maxBytes)}) {
+    errorBox.hidden = false;
+    errorBox.textContent = 'El total supera el limite permitido por el enlace.';
+    return;
+  }
+  progressList.innerHTML = '';
+  progressList.hidden = false;
+  submitBtn.disabled = true;
+  try{
+    for (const file of files) {
+      const row = createProgressRow(file.name);
+      progressList.appendChild(row);
+      await uploadOne(file, row);
+    }
+    window.location.reload();
+  }catch(err){
+    errorBox.hidden = false;
+    errorBox.textContent = err.message || 'No se pudo completar la subida.';
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+function createProgressRow(name){
+  const row = document.createElement('div');
+  row.className = 'progress-item';
+  row.innerHTML = '<div class="progress-head"><span class="progress-name"></span><span class="progress-value">0%</span></div><div class="progress-track"><div class="progress-fill"></div></div>';
+  row.querySelector('.progress-name').textContent = name;
+  return row;
+}
+
+function setProgress(row, percent){
+  const safe = Math.max(0, Math.min(100, Math.round(percent)));
+  row.querySelector('.progress-value').textContent = safe + '%';
+  row.querySelector('.progress-fill').style.width = safe + '%';
+}
+
+function uploadOne(file, row){
+  return new Promise((resolve, reject)=>{
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/external-upload?token=${encodeURIComponent(token)}&name=' + encodeURIComponent(file.name));
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = (event)=>{
+      if(!event.lengthComputable) return;
+      setProgress(row, (event.loaded / event.total) * 100);
+    };
+    xhr.onload = ()=>{
+      if (xhr.status >= 200 && xhr.status < 300) {
+        setProgress(row, 100);
+        resolve();
+        return;
+      }
+      try{
+        const data = JSON.parse(xhr.responseText || '{}');
+        reject(new Error(data.error || ('Error ' + xhr.status)));
+      }catch{
+        reject(new Error('Error ' + xhr.status));
+      }
+    };
+    xhr.onerror = ()=>reject(new Error('Fallo de red durante la subida.'));
+    xhr.send(file);
+  });
+}
 </script>
 </body></html>`;
 }
 
-function externalUploadSuccessHtml(name) {
+function externalUploadSuccessHtml(names) {
+  const list = Array.isArray(names) ? names : [String(names || "")];
+  const items = list.slice(0, 6).map((n)=>`<li>${escapeHtml(n)}</li>`).join("");
+  const extra = list.length > 6 ? `<p>y ${list.length - 6} mas...</p>` : "";
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Subida completada</title>
 <style>body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Arial;background:#eaf4ff;color:#0f2848}.wrap{max-width:560px;margin:40px auto;padding:20px}.ok{background:#fff;border:1px solid #d3e7ff;border-radius:14px;padding:18px}</style>
-</head><body><div class="wrap"><div class="ok"><h2>Archivo recibido</h2><p>Se subio correctamente: <strong>${escapeHtml(name)}</strong></p></div></div></body></html>`;
+</head><body><div class="wrap"><div class="ok"><h2>Archivos recibidos</h2><ul>${items}</ul>${extra}</div></div></body></html>`;
 }
 
 function externalUploadErrorHtml(message) {
@@ -618,6 +760,18 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function formatCanaryDate(ms) {
+  return new Intl.DateTimeFormat("es-ES", {
+    timeZone: "Atlantic/Canary",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  }).format(new Date(ms));
 }
 
 function encodeRFC5987(value) {

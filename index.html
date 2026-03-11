@@ -128,8 +128,9 @@ button:disabled{
   display:flex;
   align-items:center;
   gap:8px;
-  flex-wrap:wrap;
+  flex-wrap:nowrap;
   margin-bottom:10px;
+  overflow:hidden;
 }
 
 .bundle-chips{
@@ -137,6 +138,7 @@ button:disabled{
   align-items:center;
   gap:6px;
   flex-wrap:wrap;
+  min-width:0;
 }
 
 .bundle-chip{
@@ -151,27 +153,51 @@ button:disabled{
   box-shadow:0 8px 18px rgba(10,28,60,.18);
 }
 
+.bundle-pack-btn{
+  min-width:36px;
+  width:36px;
+  height:36px;
+  min-height:36px;
+  padding:0;
+  border-radius:999px;
+  font-size:16px;
+  font-weight:700;
+  flex:0 0 auto;
+}
 .bundle-chip:hover{
   transform:translateY(-1px);
 }
 
-.editor-actions{
-  margin-top:12px;
+.text-dock{
+  position:fixed;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  z-index:70;
+  width:min(1100px, calc(100vw - 28px));
+  padding:10px 14px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  display:grid;
+  gap:10px;
+  background:linear-gradient(180deg, rgba(214,232,255,.14), rgba(214,232,255,.94));
+  backdrop-filter: blur(14px) saturate(125%);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+  border:1px solid rgba(255,255,255,.55);
+  border-bottom:none;
+  border-radius:18px 18px 0 0;
+  box-shadow:0 -10px 30px rgba(10,28,60,.12);
+}
+
+.text-dock-row{
   display:flex;
   gap:10px;
-  justify-content:flex-end;
-  flex-wrap:wrap;
 }
 
-.editor-actions button{
-  min-width:160px;
+.text-dock-row button{
+  flex:1;
+  min-width:0;
 }
 
-.editor-actions.compact{
-  justify-content:flex-start;
-}
-
-.editor-actions.compact button{
+.text-dock-compact button{
   min-width:0;
   padding:9px 10px;
   min-height:36px;
@@ -198,23 +224,8 @@ button:disabled{
 }
 
 .json-actions{
-  margin-top:10px;
   display:flex;
   gap:10px;
-  flex-wrap:wrap;
-}
-
-.json-actions button{
-  min-width:160px;
-}
-
-.screen-footer{
-  margin-top:14px;
-  display:flex;
-}
-
-.screen-footer button{
-  width:100%;
 }
 
 .screen-footer.files-bottom{
@@ -400,6 +411,54 @@ button.primary{
   min-width:280px;
 }
 
+.upload-progress{
+  margin-top:12px;
+  display:grid;
+  gap:8px;
+}
+
+.upload-progress[hidden]{
+  display:none !important;
+}
+
+.upload-progress-item{
+  display:grid;
+  gap:6px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(255,255,255,.5);
+  border:1px solid rgba(255,255,255,.55);
+}
+
+.upload-progress-head{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:13px;
+}
+
+.upload-progress-name{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.upload-progress-track{
+  width:100%;
+  height:10px;
+  border-radius:999px;
+  background:rgba(11,107,255,.14);
+  overflow:hidden;
+}
+
+.upload-progress-fill{
+  width:0%;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,#0bc5ff,#0b6bff);
+  transition:width .12s linear;
+}
+
 .dropzone{
   margin-top:12px;
   border:2px dashed rgba(43,130,255,.5);
@@ -464,7 +523,10 @@ button.primary{
 }
 
 .view-toggle{
-  margin-top:10px;
+  position:sticky;
+  top:12px;
+  z-index:50;
+  margin:0 0 10px;
   display:flex;
   gap:8px;
   flex-wrap:wrap;
@@ -473,6 +535,8 @@ button.primary{
   background:rgba(255,255,255,.44);
   border:1px solid rgba(255,255,255,.55);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.45);
+  backdrop-filter: blur(14px) saturate(125%);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
 }
 
 .view-toggle button{
@@ -535,46 +599,30 @@ button.primary{
 
   .editor-card{ padding:14px; }
 
-  .editor-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-    justify-content:stretch;
+  .bundle-bar{
+    gap:6px;
   }
 
-  .editor-actions button{
-    width:100%;
-    min-width:0;
+  .bundle-pack-btn{
+    width:34px;
+    height:34px;
+    min-height:34px;
   }
 
-  .editor-actions.compact{
-    display:grid;
-    grid-template-columns:repeat(4, 1fr);
+  .text-dock{
+    width:calc(100vw - 16px);
+    padding:10px 10px calc(env(safe-area-inset-bottom, 0px) + 12px);
+    border-radius:16px 16px 0 0;
+  }
+
+  .text-dock-row{
     gap:8px;
   }
 
-  .editor-actions.compact button{
-    width:100%;
-    min-width:0;
+  .text-dock-compact button{
     padding:8px 0;
     min-height:34px;
     font-size:13px;
-  }
-
-  .bundle-bar{
-    display:grid;
-    grid-template-columns:1fr;
-  }
-
-  .json-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-  }
-
-  .json-actions button{
-    width:100%;
-    min-width:0;
   }
 
   .files-head{
@@ -611,6 +659,7 @@ button.primary{
     gap:6px;
     border-radius:999px;
     padding:4px;
+    top:8px;
   }
 
   .view-toggle button{
@@ -650,6 +699,16 @@ button.primary{
   #filesSection{
     padding-bottom:104px !important;
   }
+
+  #textScreen{
+    padding-bottom:116px !important;
+  }
+}
+
+@media (min-width: 1025px){
+  #textScreen{
+    padding-bottom:112px;
+  }
 }
 </style>
 </head>
@@ -681,26 +740,24 @@ button.primary{
     <div id="textScreen">
       <div class="editor-card">
         <div class="bundle-bar">
-          <button id="btnPackText" type="button">Compactar bloque</button>
+          <button id="btnPackText" type="button" class="bundle-pack-btn" title="Compactar bloque" aria-label="Compactar bloque">📎</button>
           <div id="bundleChips" class="bundle-chips"></div>
         </div>
         <textarea id="editor" placeholder="Texto compartido entre dispositivos…"></textarea>
       </div>
 
-      <div class="editor-actions compact">
-        <button id="btnPaste" title="Pegar" aria-label="Pegar" disabled>P</button>
-        <button id="btnCopy" title="Copiar" aria-label="Copiar" disabled>C</button>
-        <button id="btnClear" title="Limpiar" aria-label="Limpiar" disabled>X</button>
-        <button id="btnShare" title="Persistir" aria-label="Persistir" disabled class="primary">Persistir</button>
-      </div>
+      <div class="text-dock">
+        <div class="text-dock-row text-dock-compact">
+          <button id="btnPaste" title="Pegar" aria-label="Pegar" disabled>P</button>
+          <button id="btnCopy" title="Copiar" aria-label="Copiar" disabled>C</button>
+          <button id="btnClear" title="Limpiar" aria-label="Limpiar" disabled>X</button>
+          <button id="btnShare" title="Persistir" aria-label="Persistir" disabled class="primary">Persistir</button>
+        </div>
 
-      <div class="json-actions">
-        <button id="btnOpenJson" disabled>Abrir JSON</button>
-        <button id="btnSaveJson" disabled>Guardar JSON</button>
-      </div>
-
-      <div class="screen-footer">
-        <button id="btnLogoutText" disabled>Salir</button>
+        <div class="text-dock-row json-actions">
+          <button id="btnOpenJson" disabled>Abrir JSON</button>
+          <button id="btnSaveJson" disabled>Guardar JSON</button>
+        </div>
       </div>
     </div>
 
@@ -721,6 +778,8 @@ button.primary{
         <button id="btnCopyExternal" disabled>Copiar enlace</button>
         <input id="externalLink" readonly placeholder="Enlace temporal para subida externa (un solo uso)">
       </div>
+
+      <div id="uploadProgress" class="upload-progress" hidden></div>
 
       <div id="dropzone" class="dropzone">
         Arrastra y suelta archivos aqui o pulsa "Subir archivos"
@@ -793,7 +852,7 @@ const firebaseConfig = {
 const $ = s=>document.querySelector(s);
 
 const email=$("#email"), pass=$("#pass");
-const btnLogin=$("#btnLogin"), btnLogoutText=$("#btnLogoutText"), btnLogoutFiles=$("#btnLogoutFiles"), btnLogoutFilesBottom=$("#btnLogoutFilesBottom");
+const btnLogin=$("#btnLogin"), btnLogoutFiles=$("#btnLogoutFiles"), btnLogoutFilesBottom=$("#btnLogoutFilesBottom");
 const btnPaste=$("#btnPaste"), btnOpenJson=$("#btnOpenJson");
 const btnSaveJson=$("#btnSaveJson"), btnShare=$("#btnShare");
 const btnPackText=$("#btnPackText");
@@ -820,6 +879,7 @@ const filesBody = $("#filesBody");
 const filesEmpty = $("#filesEmpty");
 const quotaInfo = $("#quotaInfo");
 const externalLink = $("#externalLink");
+const uploadProgress = $("#uploadProgress");
 const bundleChips = $("#bundleChips");
 const saveToast = $("#saveToast");
 const fileInfoModal = $("#fileInfoModal");
@@ -855,7 +915,6 @@ function setUI(authd){
   if (appUI)   appUI.hidden   = !authd;
 
   // Estado de controles
-  btnLogoutText.disabled = !authd;
   btnLogoutFiles.disabled = !authd;
   btnLogoutFilesBottom.disabled = !authd;
   btnPaste.disabled = !authd;
@@ -905,7 +964,6 @@ btnLogin.onclick=async()=>{
   await signInWithEmailAndPassword(auth,email.value.trim(),pass.value);
 };
 
-btnLogoutText.onclick=()=>signOut(auth);
 btnLogoutFiles.onclick=()=>signOut(auth);
 btnLogoutFilesBottom.onclick=()=>signOut(auth);
 
@@ -1081,6 +1139,63 @@ async function authHeaders(){
   };
 }
 
+function resetUploadProgress(){
+  if(!uploadProgress) return;
+  uploadProgress.innerHTML = "";
+  uploadProgress.hidden = true;
+}
+
+function ensureUploadProgressItem(file){
+  if(!uploadProgress) return null;
+  uploadProgress.hidden = false;
+  const row = document.createElement("div");
+  row.className = "upload-progress-item";
+  row.innerHTML = `
+    <div class="upload-progress-head">
+      <span class="upload-progress-name"></span>
+      <span class="upload-progress-value">0%</span>
+    </div>
+    <div class="upload-progress-track">
+      <div class="upload-progress-fill"></div>
+    </div>
+  `;
+  row.querySelector(".upload-progress-name").textContent = file.name;
+  uploadProgress.append(row);
+  return row;
+}
+
+function setUploadProgress(row, percent){
+  if(!row) return;
+  const safe = Math.max(0, Math.min(100, Math.round(percent)));
+  row.querySelector(".upload-progress-value").textContent = `${safe}%`;
+  row.querySelector(".upload-progress-fill").style.width = `${safe}%`;
+}
+
+async function uploadFileWithProgress(file, row){
+  const headers = await authHeaders();
+  return new Promise((resolve, reject)=>{
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${FILES_API_BASE}/files?name=${encodeURIComponent(file.name)}`);
+    if (headers.Authorization) xhr.setRequestHeader("Authorization", headers.Authorization);
+    if (headers["X-Transpol-Uid"]) xhr.setRequestHeader("X-Transpol-Uid", headers["X-Transpol-Uid"]);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (event)=>{
+      if (!event.lengthComputable) return;
+      setUploadProgress(row, (event.loaded / event.total) * 100);
+    };
+    xhr.onload = ()=>{
+      if (xhr.status >= 200 && xhr.status < 300) {
+        setUploadProgress(row, 100);
+        resolve();
+        return;
+      }
+      reject(new Error(xhr.responseText || `Error ${xhr.status}`));
+    };
+    xhr.onerror = ()=>reject(new Error("No se pudo completar la subida"));
+    xhr.send(file);
+  });
+}
+
 async function filesFetch(path, options={}){
   if(!FILES_API_BASE){
     throw new Error("Configura window.TRANS_POL_FILES_API_BASE con tu endpoint de archivos.");
@@ -1177,6 +1292,7 @@ function renderFiles(list){
 
 async function refreshFiles(){
   if(!currentUid || !FILES_API_BASE) return;
+  resetUploadProgress();
   if(externalLink) externalLink.value = "";
   if(btnCopyExternal) btnCopyExternal.disabled = true;
   try{
@@ -1249,6 +1365,7 @@ async function uploadFiles(files){
     return;
   }
   setFilesBusy(true);
+  resetUploadProgress();
   try{
     for(const file of files){
       const remainingNow = Math.max(0, filesMaxBytes - filesUsedBytes);
@@ -1256,13 +1373,8 @@ async function uploadFiles(files){
         throw new Error(`No hay espacio suficiente para "${file.name}". Disponible: ${formatBytes(remainingNow)}.`);
       }
       setStatus(`Subiendo: ${file.name}`);
-      await filesFetch(`/files?name=${encodeURIComponent(file.name)}`,{
-        method:"POST",
-        headers:{
-          "Content-Type": file.type || "application/octet-stream"
-        },
-        body:file
-      });
+      const progressRow = ensureUploadProgressItem(file);
+      await uploadFileWithProgress(file, progressRow);
       filesUsedBytes += Number(file.size) || 0;
       updateQuotaInfo();
     }
@@ -1411,7 +1523,9 @@ onAuthStateChanged(auth,(user)=>{
 </script>
 <script>
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./service-worker.js");
+  navigator.serviceWorker.register("./service-worker.js", { updateViaCache: "none" })
+    .then(reg => reg.update())
+    .catch(() => {});
 }
 </script>
 </body>
