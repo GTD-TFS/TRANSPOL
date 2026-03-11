@@ -634,13 +634,14 @@ button[disabled]{opacity:.6;cursor:not-allowed}
 .progress-fill{width:0%;height:100%;border-radius:999px;background:linear-gradient(90deg,#0bc5ff,#0b6bff)}
 .error{margin-top:10px;color:#8d2020;font-size:14px}
 .success{margin-top:10px;color:#14532d;font-size:14px;background:#eefcf2;border:1px solid #cdeed7;padding:10px;border-radius:10px}
+.done-state{display:grid;gap:10px}
 </style></head><body><div class="wrap"><div class="card">
 <h1>Subida segura de archivo</h1>
 <p>Este enlace permite una unica sesion de subida.</p>
 <div class="meta">Tamano maximo total: ${maxMb} MB<br>Caduca el: ${expText} (hora Canarias)</div>
-<form id="upload-form">
+<form id="upload-form" novalidate>
   <label class="filepick" for="external-file">Seleccionar archivo</label>
-  <input id="external-file" type="file" name="file" multiple required>
+  <input id="external-file" type="file" name="file" multiple>
   <div id="file-name" class="filename">Ningun archivo seleccionado</div>
   <div id="progress-list" class="progress-list" hidden></div>
   <div id="error-box" class="error" hidden></div>
@@ -656,12 +657,28 @@ const progressList=document.getElementById('progress-list');
 const errorBox=document.getElementById('error-box');
 const successBox=document.getElementById('success-box');
 const submitBtn=form.querySelector('button');
+let selectedFiles = [];
 input.addEventListener('change',()=>{
   const list=Array.from(input.files||[]);
-  if(!list.length){label.textContent='Ningun archivo seleccionado';return;}
-  const total=list.reduce((a,f)=>a+(f.size||0),0);
-  label.textContent=list.length+' archivo(s) · '+(total/1024/1024).toFixed(2)+' MB';
+  if(!list.length){return;}
+  for(const file of list){
+    const key = file.name + '::' + file.size + '::' + file.lastModified;
+    if (!selectedFiles.some((item)=> (item.name + '::' + item.size + '::' + item.lastModified) === key)) {
+      selectedFiles.push(file);
+    }
+  }
+  input.value = '';
+  renderSelection();
 });
+
+function renderSelection(){
+  if(!selectedFiles.length){
+    label.textContent='Ningun archivo seleccionado';
+    return;
+  }
+  const total=selectedFiles.reduce((a,f)=>a+(f.size||0),0);
+  label.textContent=selectedFiles.length+' archivo(s) · '+(total/1024/1024).toFixed(2)+' MB';
+}
 
 form.addEventListener('submit', async (ev)=>{
   ev.preventDefault();
@@ -669,7 +686,7 @@ form.addEventListener('submit', async (ev)=>{
   errorBox.textContent = '';
   successBox.hidden = true;
   successBox.textContent = '';
-  const files = Array.from(input.files || []);
+  const files = selectedFiles.slice();
   if(!files.length){
     errorBox.hidden = false;
     errorBox.textContent = 'Selecciona al menos un archivo.';
@@ -696,13 +713,14 @@ form.addEventListener('submit', async (ev)=>{
     successBox.textContent = uploadedNames.length === 1
       ? 'Archivo subido correctamente.'
       : uploadedNames.length + ' archivos subidos correctamente.';
-    label.textContent = uploadedNames.join(', ');
-    input.value = '';
+    form.innerHTML = '<div class="done-state"><div class="success">' + successBox.textContent + '</div></div>';
   }catch(err){
     errorBox.hidden = false;
     errorBox.textContent = err.message || 'No se pudo completar la subida.';
   } finally {
-    submitBtn.disabled = false;
+    if (submitBtn && document.body.contains(submitBtn)) {
+      submitBtn.disabled = false;
+    }
   }
 });
 
