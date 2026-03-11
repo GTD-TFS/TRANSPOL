@@ -890,6 +890,7 @@ const btnCloseFileInfo = $("#btnCloseFileInfo");
 
 const FILES_API_BASE = (window.TRANS_POL_FILES_API_BASE || "").replace(/\/+$/,"");
 const MAX_STORAGE_BYTES = 10 * 1024 * 1024 * 1024;
+const UPLOAD_PROGRESS_SETTLE_MS = 1600;
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -1201,8 +1202,9 @@ async function filesFetch(path, options={}){
     throw new Error("Configura window.TRANS_POL_FILES_API_BASE con tu endpoint de archivos.");
   }
   const headers = await authHeaders();
-  const mergedHeaders = { ...(options.headers || {}), ...headers };
-  const res = await fetch(`${FILES_API_BASE}${path}`, { ...options, headers: mergedHeaders });
+  const mergedHeaders = { ...(options.headers || {}), ...headers, "Cache-Control":"no-store" };
+  const finalPath = `${FILES_API_BASE}${path}${path.includes("?") ? "&" : "?"}_ts=${Date.now()}`;
+  const res = await fetch(finalPath, { ...options, cache:"no-store", headers: mergedHeaders });
   if(!res.ok){
     const text = await res.text().catch(()=>"");
     throw new Error(text || `Error ${res.status}`);
@@ -1290,9 +1292,12 @@ function renderFiles(list){
   filesEmpty.hidden = true;
 }
 
-async function refreshFiles(){
+async function refreshFiles(options = {}){
   if(!currentUid || !FILES_API_BASE) return;
-  resetUploadProgress();
+  const preserveProgress = !!options.preserveProgress;
+  if(!preserveProgress){
+    resetUploadProgress();
+  }
   if(externalLink) externalLink.value = "";
   if(btnCopyExternal) btnCopyExternal.disabled = true;
   try{
@@ -1379,7 +1384,10 @@ async function uploadFiles(files){
       updateQuotaInfo();
     }
     setStatus("Subida completada");
-    await refreshFiles();
+    await refreshFiles({ preserveProgress: true });
+    setTimeout(() => {
+      resetUploadProgress();
+    }, UPLOAD_PROGRESS_SETTLE_MS);
   }catch(err){
     setStatus(`Error al subir archivos: ${err.message}`);
   }finally{

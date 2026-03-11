@@ -633,6 +633,7 @@ button[disabled]{opacity:.6;cursor:not-allowed}
 .progress-track{width:100%;height:10px;border-radius:999px;background:#dceeff;overflow:hidden}
 .progress-fill{width:0%;height:100%;border-radius:999px;background:linear-gradient(90deg,#0bc5ff,#0b6bff)}
 .error{margin-top:10px;color:#8d2020;font-size:14px}
+.success{margin-top:10px;color:#14532d;font-size:14px;background:#eefcf2;border:1px solid #cdeed7;padding:10px;border-radius:10px}
 </style></head><body><div class="wrap"><div class="card">
 <h1>Subida segura de archivo</h1>
 <p>Este enlace permite una unica sesion de subida.</p>
@@ -643,6 +644,7 @@ button[disabled]{opacity:.6;cursor:not-allowed}
   <div id="file-name" class="filename">Ningun archivo seleccionado</div>
   <div id="progress-list" class="progress-list" hidden></div>
   <div id="error-box" class="error" hidden></div>
+  <div id="success-box" class="success" hidden></div>
   <button type="submit">Subir archivos</button>
 </form>
 </div></div>
@@ -652,6 +654,7 @@ const label=document.getElementById('file-name');
 const form=document.getElementById('upload-form');
 const progressList=document.getElementById('progress-list');
 const errorBox=document.getElementById('error-box');
+const successBox=document.getElementById('success-box');
 const submitBtn=form.querySelector('button');
 input.addEventListener('change',()=>{
   const list=Array.from(input.files||[]);
@@ -664,6 +667,8 @@ form.addEventListener('submit', async (ev)=>{
   ev.preventDefault();
   errorBox.hidden = true;
   errorBox.textContent = '';
+  successBox.hidden = true;
+  successBox.textContent = '';
   const files = Array.from(input.files || []);
   if(!files.length){
     errorBox.hidden = false;
@@ -680,12 +685,19 @@ form.addEventListener('submit', async (ev)=>{
   progressList.hidden = false;
   submitBtn.disabled = true;
   try{
+    const uploadedNames = [];
     for (const file of files) {
       const row = createProgressRow(file.name);
       progressList.appendChild(row);
       await uploadOne(file, row);
+      uploadedNames.push(file.name);
     }
-    window.location.reload();
+    successBox.hidden = false;
+    successBox.textContent = uploadedNames.length === 1
+      ? 'Archivo subido correctamente.'
+      : uploadedNames.length + ' archivos subidos correctamente.';
+    label.textContent = uploadedNames.join(', ');
+    input.value = '';
   }catch(err){
     errorBox.hidden = false;
     errorBox.textContent = err.message || 'No se pudo completar la subida.';
