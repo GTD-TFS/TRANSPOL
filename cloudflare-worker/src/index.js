@@ -615,8 +615,9 @@ function externalUploadFormHtml(token, maxBytes, exp) {
 <title>Subida segura</title>
 <style>
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Arial;background:linear-gradient(145deg,#ecf5ff,#dcefff);color:#10203a}
-.wrap{max-width:640px;margin:0 auto;padding:22px}
+.wrap{max-width:640px;margin:0 auto;padding:22px 16px 120px}
 .card{background:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.8);border-radius:16px;padding:18px;box-shadow:0 18px 40px rgba(10,28,60,.14)}
 h1{margin:0 0 8px;font-size:22px}
 p{margin:8px 0;color:#3b4f73}
@@ -627,14 +628,21 @@ input[type=file]{display:none}
 button{margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:#0b6bff;color:#fff;font-weight:700;cursor:pointer}
 button[disabled]{opacity:.6;cursor:not-allowed}
 .progress-list{display:grid;gap:8px;margin-top:12px}
-.progress-item{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:#f7fbff;border:1px solid #d7e9ff}
-.progress-head{display:flex;justify-content:space-between;gap:10px;font-size:13px}
-.progress-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.progress-track{width:100%;height:10px;border-radius:999px;background:#dceeff;overflow:hidden}
+.progress-item{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:#f7fbff;border:1px solid #d7e9ff;min-width:0;width:100%}
+.progress-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;font-size:13px}
+.progress-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%}
+.progress-track{width:100%;max-width:100%;height:10px;border-radius:999px;background:#dceeff;overflow:hidden}
 .progress-fill{width:0%;height:100%;border-radius:999px;background:linear-gradient(90deg,#0bc5ff,#0b6bff)}
 .error{margin-top:10px;color:#8d2020;font-size:14px}
 .success{margin-top:10px;color:#14532d;font-size:14px;background:#eefcf2;border:1px solid #cdeed7;padding:10px;border-radius:10px}
 .done-state{display:grid;gap:10px}
+.submit-dock{position:fixed;left:0;right:0;bottom:0;padding:12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px);background:linear-gradient(180deg,rgba(220,239,255,.12),rgba(220,239,255,.96));backdrop-filter:blur(14px) saturate(125%);-webkit-backdrop-filter:blur(14px) saturate(125%);border-top:1px solid rgba(255,255,255,.75)}
+.submit-inner{max-width:640px;margin:0 auto}
+.submit-dock button{margin-top:0}
+.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(10,20,40,.28);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.modal-card{width:min(420px,100%);background:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.9);border-radius:18px;padding:22px;text-align:center;box-shadow:0 24px 50px rgba(10,28,60,.18)}
+.modal-card h2{margin:0 0 10px;font-size:22px}
+.modal-card p{margin:0;color:#335}
 </style></head><body><div class="wrap"><div class="card">
 <h1>Subida segura de archivo</h1>
 <p>Este enlace permite una unica sesion de subida.</p>
@@ -646,9 +654,19 @@ button[disabled]{opacity:.6;cursor:not-allowed}
   <div id="progress-list" class="progress-list" hidden></div>
   <div id="error-box" class="error" hidden></div>
   <div id="success-box" class="success" hidden></div>
-  <button type="submit">Subir archivos</button>
 </form>
 </div></div>
+<div id="submit-dock" class="submit-dock">
+  <div class="submit-inner">
+    <button id="submit-btn" type="submit" form="upload-form">Enviar archivos</button>
+  </div>
+</div>
+<div id="success-modal" class="modal" hidden>
+  <div class="modal-card">
+    <h2 id="success-title">Archivos enviados</h2>
+    <p id="success-text">Se han enviado satisfactoriamente.</p>
+  </div>
+</div>
 <script>
 const input=document.getElementById('external-file');
 const label=document.getElementById('file-name');
@@ -656,7 +674,11 @@ const form=document.getElementById('upload-form');
 const progressList=document.getElementById('progress-list');
 const errorBox=document.getElementById('error-box');
 const successBox=document.getElementById('success-box');
-const submitBtn=form.querySelector('button');
+const submitBtn=document.getElementById('submit-btn');
+const submitDock=document.getElementById('submit-dock');
+const successModal=document.getElementById('success-modal');
+const successTitle=document.getElementById('success-title');
+const successText=document.getElementById('success-text');
 let selectedFiles = [];
 input.addEventListener('change',()=>{
   const list=Array.from(input.files||[]);
@@ -709,16 +731,23 @@ form.addEventListener('submit', async (ev)=>{
       await uploadOne(file, row);
       uploadedNames.push(file.name);
     }
+    const okText = uploadedNames.length === 1
+      ? 'El archivo se ha enviado satisfactoriamente.'
+      : 'Los archivos se han enviado satisfactoriamente.';
     successBox.hidden = false;
-    successBox.textContent = uploadedNames.length === 1
-      ? 'Archivo subido correctamente.'
-      : uploadedNames.length + ' archivos subidos correctamente.';
-    form.innerHTML = '<div class="done-state"><div class="success">' + successBox.textContent + '</div></div>';
+    successBox.textContent = okText;
+    form.hidden = true;
+    submitDock.hidden = true;
+    successTitle.textContent = uploadedNames.length === 1 ? 'Archivo enviado' : 'Archivos enviados';
+    successText.textContent = okText;
+    successModal.hidden = false;
   }catch(err){
     errorBox.hidden = false;
     errorBox.textContent = err.message || 'No se pudo completar la subida.';
   } finally {
-    if (submitBtn && document.body.contains(submitBtn)) {
+    if (submitBtn && !successModal.hidden) {
+      submitBtn.disabled = true;
+    } else if (submitBtn && document.body.contains(submitBtn)) {
       submitBtn.disabled = false;
     }
   }

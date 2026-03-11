@@ -415,6 +415,8 @@ button.primary{
   margin-top:12px;
   display:grid;
   gap:8px;
+  width:100%;
+  min-width:0;
 }
 
 .upload-progress[hidden]{
@@ -428,23 +430,35 @@ button.primary{
   border-radius:12px;
   background:rgba(255,255,255,.5);
   border:1px solid rgba(255,255,255,.55);
+  width:100%;
+  min-width:0;
+  overflow:hidden;
 }
 
 .upload-progress-head{
-  display:flex;
-  justify-content:space-between;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
   gap:10px;
   font-size:13px;
+  min-width:0;
 }
 
 .upload-progress-name{
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
+  min-width:0;
+  flex:1 1 auto;
+}
+
+.upload-progress-value{
+  flex:0 0 auto;
 }
 
 .upload-progress-track{
   width:100%;
+  max-width:100%;
   height:10px;
   border-radius:999px;
   background:rgba(11,107,255,.14);
