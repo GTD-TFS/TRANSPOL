@@ -1,4 +1,4 @@
-const CACHE_NAME = "editor-compartido-v4";
+const CACHE_NAME = "editor-compartido-v5";
 
 const APP_ASSETS = [
   "./",
@@ -29,8 +29,17 @@ self.addEventListener("activate", event => {
 self.addEventListener("fetch", event => {
   const url = new URL(event.request.url);
 
+  // No cachear peticiones externas ni APIs remotas como Cloudflare Worker.
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
   // ⚠️ No tocar Firebase ni Google APIs
   if (url.origin.includes("googleapis") || url.origin.includes("firebase")) {
+    return;
+  }
+
+  if (event.request.method !== "GET") {
     return;
   }
 
