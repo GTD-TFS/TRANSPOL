@@ -1545,9 +1545,11 @@ onAuthStateChanged(auth,(user)=>{
 </script>
 <script>
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./service-worker.js", { updateViaCache: "none" })
-    .then(reg => reg.update())
-    .catch(() => {});
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+      .catch(() => {});
+  });
 }
 </script>
 </body>
