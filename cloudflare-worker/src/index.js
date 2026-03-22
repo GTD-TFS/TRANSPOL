@@ -593,7 +593,7 @@ async function refreshJwks() {
 }
 
 function corsHeaders(env) {
-  const origin = env.ALLOWED_ORIGIN || "*";
+  const origin = "*";
   return {
     "access-control-allow-origin": origin,
     "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
@@ -629,7 +629,7 @@ button{margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;ba
 button[disabled]{opacity:.6;cursor:not-allowed}
 .progress-list{display:grid;gap:8px;margin-top:12px}
 .progress-item{display:grid;gap:6px;padding:10px 12px;border-radius:12px;background:#f7fbff;border:1px solid #d7e9ff;min-width:0;width:100%}
-.progress-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;font-size:13px}
+.progress-head{display:flex;justify-content:space-between;gap:10px;font-size:13px}
 .progress-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%}
 .progress-track{width:100%;max-width:100%;height:10px;border-radius:999px;background:#dceeff;overflow:hidden}
 .progress-fill{width:0%;height:100%;border-radius:999px;background:linear-gradient(90deg,#0bc5ff,#0b6bff)}
@@ -732,8 +732,8 @@ form.addEventListener('submit', async (ev)=>{
       uploadedNames.push(file.name);
     }
     const okText = uploadedNames.length === 1
-      ? 'El archivo se ha enviado satisfactoriamente.'
-      : 'Los archivos se han enviado satisfactoriamente.';
+      ? 'El proceso se ha llevado a cabo satisfactoriamente.'
+      : 'El proceso se ha llevado a cabo satisfactoriamente.';
     successBox.hidden = false;
     successBox.textContent = okText;
     form.hidden = true;
