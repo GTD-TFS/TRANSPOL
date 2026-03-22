@@ -1216,7 +1216,7 @@ async function filesFetch(path, options={}){
     throw new Error("Configura window.TRANS_POL_FILES_API_BASE con tu endpoint de archivos.");
   }
   const headers = await authHeaders();
-  const mergedHeaders = { ...(options.headers || {}), ...headers, "Cache-Control":"no-store" };
+  const mergedHeaders = { ...(options.headers || {}), ...headers };
   const finalPath = `${FILES_API_BASE}${path}${path.includes("?") ? "&" : "?"}_ts=${Date.now()}`;
   const res = await fetch(finalPath, { ...options, cache:"no-store", headers: mergedHeaders });
   if(!res.ok){

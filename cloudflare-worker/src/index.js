@@ -597,7 +597,7 @@ function corsHeaders(env) {
   return {
     "access-control-allow-origin": origin,
     "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
-    "access-control-allow-headers": "Authorization,Content-Type,X-Transpol-Uid",
+    "access-control-allow-headers": "Authorization,Content-Type,X-Transpol-Uid,Cache-Control,Pragma",
     "access-control-max-age": "86400"
   };
 }
